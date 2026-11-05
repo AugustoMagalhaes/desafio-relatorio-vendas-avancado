@@ -56,11 +56,13 @@ def test_is_tty_defaults_to_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert is_tty() is True
 
 
-def test_supports_color_on_tty(clean_env: pytest.MonkeyPatch) -> None:
+@pytest.mark.usefixtures("clean_env")
+def test_supports_color_on_tty() -> None:
     assert supports_color(FakeStream(True)) is True
 
 
-def test_supports_color_off_when_not_tty(clean_env: pytest.MonkeyPatch) -> None:
+@pytest.mark.usefixtures("clean_env")
+def test_supports_color_off_when_not_tty() -> None:
     assert supports_color(FakeStream(False)) is False
 
 
@@ -93,9 +95,8 @@ def test_formatter_leaves_info_uncoloured() -> None:
     assert "\033[" not in out
 
 
-def test_setup_logging_writes_to_given_stream_and_respects_level(
-    clean_env: pytest.MonkeyPatch,
-) -> None:
+@pytest.mark.usefixtures("clean_env")
+def test_setup_logging_writes_to_given_stream_and_respects_level() -> None:
     stream: FakeStream = FakeStream(False)
     logger: logging.Logger = setup_logging(logging.INFO, stream)
     logger.debug("hidden")
@@ -108,7 +109,7 @@ def test_setup_logging_writes_to_given_stream_and_respects_level(
 
 
 def test_setup_logging_is_idempotent() -> None:
-    setup_logging(logging.INFO, FakeStream(False))
+    _ = setup_logging(logging.INFO, FakeStream(False))
     logger: logging.Logger = setup_logging(logging.INFO, FakeStream(False))
     assert len(logger.handlers) == 1
     assert logger.propagate is False
@@ -116,19 +117,20 @@ def test_setup_logging_is_idempotent() -> None:
 
 def test_setup_logging_child_loggers_reach_the_handler() -> None:
     stream: FakeStream = FakeStream(False)
-    setup_logging(logging.INFO, stream)
+    _ = setup_logging(logging.INFO, stream)
     logging.getLogger("sales_cli.core").info("from child")
     assert "from child" in stream.getvalue()
 
 
-def test_setup_logging_uses_colour_on_tty(clean_env: pytest.MonkeyPatch) -> None:
+@pytest.mark.usefixtures("clean_env")
+def test_setup_logging_uses_colour_on_tty() -> None:
     stream: FakeStream = FakeStream(True)
     setup_logging(logging.INFO, stream).warning("careful")
     assert YELLOW in stream.getvalue()
 
 
 def test_setup_logging_defaults_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
-    setup_logging()
+    _ = setup_logging()
     logging.getLogger(LOGGER_NAME).info("to stderr")
     out: str
     err: str
@@ -194,7 +196,7 @@ def test_parse_decimal_valid(raw: str, expected: Decimal) -> None:
 )
 def test_parse_decimal_invalid(raw: str) -> None:
     with pytest.raises(ValueError, match="not a number"):
-        parse_decimal(raw)
+        _ = parse_decimal(raw)
 
 
 def test_parse_decimal_avoids_float_error() -> None:
