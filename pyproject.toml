@@ -48,3 +48,11 @@ branch = true
 fail_under = 80
 show_missing = true
 exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]
+
+[tool.basedpyright]
+pythonVersion = "3.10"
+include = ["src", "tests"]
+reportImplicitOverride = false
+
+[tool.ruff.lint]
+extend-ignore = ["DTZ007"]

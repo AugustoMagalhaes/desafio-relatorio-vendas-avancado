@@ -60,6 +60,8 @@ Premissas adicionais adotadas, além do enunciado:
 - **Motivo:** o enunciado pede um arquivo de configuração de testes (`pytest.ini` ou
   similar). O `pythonpath = src` faz o `pytest` funcionar logo após o clone. O limite de 80%
   só vale com `pytest --cov`, então `pytest` puro não quebra sem o plugin instalado.
+- **Pasta `tests/`:** na etapa 0 ela foi versionada com um `.gitkeep` (o Git não rastreia pastas
+  vazias). O arquivo foi removido na etapa 1, quando a pasta ganhou testes reais.
 
 ### D-06 — Versão única
 - **Decisão:** `__version__` em `__init__.py`; o `pyproject.toml` lê de lá (`dynamic`).
@@ -67,9 +69,8 @@ Premissas adicionais adotadas, além do enunciado:
 
 ### D-07 — Python mínimo
 - **Decisão:** `requires-python >= 3.10`.
-- **Motivo:** o 3.9 já saiu de suporte e o 3.10+ traz sintaxe de tipos mais moderna e
-  mensagens de erro melhores. Ficou como mínimo razoável, sem depender de recurso exclusivo
-  de versão nova.
+- **Motivo:** o 3.9 já saiu de suporte e o código usa a sintaxe `X | None` (3.10+) nas
+  anotações de tipo.
 
 ### D-08 — Nomes: comando em português, resto em inglês
 - **Decisão:** executável `vendas-cli` (exigido pelo enunciado); pacote `sales_cli`,
@@ -79,8 +80,77 @@ Premissas adicionais adotadas, além do enunciado:
 - **Cabeçalhos do CSV:** continuam em português no arquivo de exemplo (é o dado de entrada do
   desafio); o parser também aceita equivalentes em inglês.
 
+### D-09 — Logging
+- **Decisão:** logger do pacote (`sales_cli`) configurado por `utils.setup_logging`, com saída
+  em **stderr** e nível padrão INFO. Mensagens em inglês.
+- **Motivo:** stdout fica reservado ao relatório, então `vendas-cli ... --format json | jq`
+  funciona sem logs misturados. INFO mostra o essencial (arquivo lido, linhas, filtros);
+  detalhes linha a linha ficam em DEBUG para não poluir.
+- **Formato:** uma linha só, `HH:MM:SS | NÍVEL | mensagem`.
+- **Cores:** só quando a saída é um terminal e a variável `NO_COLOR` não está definida
+  (https://no-color.org). DEBUG é apagado, WARNING amarelo, ERROR e CRITICAL vermelhos; INFO
+  fica sem cor. Feito com constantes ANSI em `utils.py`, sem `colorama` ou `rich`.
+- **Trade-off:** consoles muito antigos do Windows podem não interpretar ANSI. Aceito para
+  manter zero dependências.
+- **Detalhe técnico:** `setup_logging` pode ser chamada mais de uma vez (limpa os handlers do
+  logger do pacote antes de adicionar o seu) e desliga `propagate`, para o log não sair
+  duplicado se alguém configurar o root logger.
+
+### D-10 — Parse numérico com `Decimal`
+- **Decisão:** `utils.parse_decimal` aceita formato brasileiro e inglês e devolve `Decimal`.
+- **Regras:**
+  - com `,` e `.` juntos, o **último** é o separador decimal (`1.234,56` e `1,234.56`);
+  - só `,` ou só `.` é separador decimal (`49,9` e `49.9`);
+  - o prefixo `R$` é ignorado;
+  - `NaN` e `Infinity` são rejeitados; qualquer valor inválido gera `ValueError`.
+- **Motivo:** CSVs brasileiros usam vírgula decimal com frequência. `Decimal` evita o erro de
+  ponto flutuante em dinheiro (com `float`, `49.9 * 3` dá `149.70000000000002`).
+- **Limitações conhecidas:** `1,234` é lido como 1,234 (decimal), não 1234, e separador de
+  milhar repetido (`1.234.567`) é rejeitado. As regras são simples e determinísticas.
+
+### D-11 — Datas
+- **Decisão:** `utils.parse_date` tenta, em ordem, uma lista de formatos com
+  `datetime.strptime` e devolve `date` (ou `None` se nenhum servir).
+- **Formatos:**
+  - ano primeiro: `2025-01-31`, `2025/01/31`, `2025.01.31`;
+  - dia/mês/ano: `31/01/2025`, `31-01-2025`, `31.01.2025` e `05/01/25` (ano de 2 dígitos);
+  - mês/dia/ano (`01/31/2025`, `01-31-2025`), usado só quando dia/mês é impossível.
+- **Ambiguidade:** `03/04/2025` é lido como 3 de abril. A ordem dia/mês vem antes da mês/dia
+  (convenção brasileira).
+- **Hora:** o texto é cortado no primeiro espaço (e o `T` do ISO vira espaço), então
+  `2025-01-31 10:30` e `2025-01-31T10:30:00Z` viram `2025-01-31`. O filtro é por dia.
+- **Fora do escopo:** meses por extenso, timestamp Unix e número serial do Excel. Valores assim
+  são tratados como "sem data" (e geram aviso mais adiante), sem derrubar o programa.
+- **Alternativas descartadas:** regex e bibliotecas de terceiros (`dateutil`): mais código para
+  manter e explicar, ou dependência extra.
+- **Aviso DTZ007 do ruff:** a regra reclama de `strptime` sem fuso. É ignorada no projeto
+  porque guardamos só a data de calendário (`.date()`), que não tem fuso.
+
+### D-12 — Normalização de textos (cabeçalhos do CSV)
+- **Decisão:** `utils.normalize_text` transforma um texto em uma chave simples:
+  `"Preço Unitário (R$)"` vira `"preco_unitario_r"`.
+- **Como funciona:** `strip_accents` decompõe cada letra acentuada em letra base + marca de
+  acento (`unicodedata.normalize("NFKD", ...)`) e descarta as marcas; depois vêm `lower()` e
+  uma regex que troca qualquer sequência fora de `[a-z0-9]` por um único `_`.
+- **Motivo:** o cabeçalho pode vir como `Preço`, `preco` ou `PREÇO`. Com a chave padronizada, o
+  parser compara com os nomes esperados sem depender de acento ou maiúsculas.
+
+### D-13 — Tipagem completa, ferramentas e código sem comentários
+- **Decisão:** todo o código, inclusive os testes, é tipado: argumentos, retornos, fixtures,
+  constantes, atributos e variáveis locais. Constantes usam `Final`. Só ficam sem anotação o que
+  a sintaxe do Python não permite anotar (variáveis de `for` e de comprehension, `as` e `_`) e
+  as reatribuições. O código não tem comentários nem docstrings.
+- **Motivo:** o enunciado pede tipagem estática. Nomes e tipos expressam a intenção; as regras de
+  comportamento não óbvias (logging, números, datas, normalização) estão documentadas neste
+  arquivo, nas decisões D-09 a D-12.
+- **Verificador de tipos:** basedpyright, apontando para o ambiente `.venv`, com a regra
+  `reportImplicitOverride` desligada. O `typing.override` só existe no Python 3.12+; usá-lo
+  exigiria `typing_extensions` (dependência extra, contra o D-04) ou subir o mínimo para 3.12
+  (contra o D-07).
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
 |---|---|---|
 | 0 | chore/project-scaffold | Estrutura, pyproject, pytest.ini, docs/DESIGN_DECISIONS.md |
+| 1 | feat/utils-helpers | utils.py (tty, cores, logging, normalização, parse de número e data), testes e tipagem completa |
