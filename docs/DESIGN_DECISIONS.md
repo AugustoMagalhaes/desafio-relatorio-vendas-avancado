@@ -148,6 +148,31 @@ Premissas adicionais adotadas, além do enunciado:
   exigiria `typing_extensions` (dependência extra, contra o D-04) ou subir o mínimo para 3.12
   (contra o D-07).
 
+## D-14 Integração contínua
+
+O projeto usa GitHub Actions (`.github/workflows/ci.yml`) para validar cada alteração antes de ela chegar à `main`. O workflow roda em todo pull request com destino à `main` e em todo push na `main`.
+
+O push na `main` só ocorre pelo merge de um PR, já que o push direto é bloqueado. O run após o merge valida o resultado real da integração e alimenta o badge de status do README.
+
+O workflow tem dois jobs:
+
+- **Lint and types:** `ruff check`, `ruff format --check` e `basedpyright`.
+- **Tests:** `pytest --cov` em Python 3.10, 3.11, 3.12, 3.13 e 3.14, com `fail-fast` desativado para que uma falha em uma versão não esconda o resultado das outras.
+
+A matriz cobre da versão mínima suportada (3.10, conforme D-07) até a mais recente. O limite de cobertura de 80% fica no `pyproject.toml` (`fail_under`), então o mesmo critério vale localmente e no CI.
+
+O job de tipos cria uma `.venv` antes de rodar o basedpyright, porque o `pyproject.toml` aponta para esse caminho (`venvPath` e `venv`). Assim a configuração é a mesma no ambiente local e no runner.
+
+CD (publicação ou deploy) está fora do escopo do desafio.
+
+## D-15 Fluxo de branches e proteção da main
+
+O trabalho é feito em branches curtas, uma por etapa, com nomes no padrão `tipo/descricao` (`feat/`, `ci/`, `docs/`, `chore/`, `build/`). A integração é feita por pull request.
+
+O ruleset `protect-main` impede push direto, force push e exclusão da `main`. Ele exige PR, permite apenas merge commit e exige que os seis checks do CI passem, com a branch atualizada em relação à `main`. Os checks obrigatórios usam os nomes dos jobs do workflow. Se um job for renomeado, a lista no ruleset deve ser atualizada.
+
+As mensagens de commit seguem Conventional Commits, em inglês.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
