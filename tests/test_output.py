@@ -86,10 +86,6 @@ def make_sale(product: str, quantity: int, unit_price: str) -> Sale:
     )
 
 
-def make_report(sales: list[Sale]) -> Report:
-    return summarize(sales)
-
-
 @pytest.mark.parametrize(("value", "expected"), QUANTIZE_CASES)
 def test_quantize_money_rounds_half_up(value: str, expected: str) -> None:
     assert str(quantize_money(Decimal(value))) == expected
@@ -102,7 +98,7 @@ def test_format_money(value: str, expected: str) -> None:
 
 def test_format_text_without_sales() -> None:
     sales: list[Sale] = []
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     assert format_text(report) == NO_SALES_MESSAGE
 
 
@@ -112,7 +108,7 @@ def test_format_text_full_report() -> None:
         make_sale("Monitor", 3, "900.00"),
         make_sale("Cabo", 1, "5.5"),
     ]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     assert format_text(report).splitlines() == EXPECTED_TEXT
 
 
@@ -121,7 +117,7 @@ def test_format_text_table_lines_have_the_same_width() -> None:
         make_sale("Teclado Mecânico", 2, "150.00"),
         make_sale("Cabo", 100, "0.50"),
     ]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     table_size: int = 2 + len(report.products)
     table_lines: list[str] = format_text(report).splitlines()[:table_size]
     widths: set[int] = {len(line) for line in table_lines}
@@ -130,7 +126,7 @@ def test_format_text_table_lines_have_the_same_width() -> None:
 
 def test_format_text_rounds_only_on_output() -> None:
     sales: list[Sale] = [make_sale("Bala", 1, "0.005")]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     text: str = format_text(report)
     assert "Grand total: 0.01" in text
     assert report.grand_total == Decimal("0.005")
@@ -138,7 +134,7 @@ def test_format_text_rounds_only_on_output() -> None:
 
 def test_format_text_single_unit_wording() -> None:
     sales: list[Sale] = [make_sale("Mouse", 1, "10.00")]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     assert "Best seller (units): Mouse (1 sold)" in format_text(report)
 
 
@@ -153,35 +149,35 @@ def test_format_json_full_report() -> None:
         make_sale("Monitor", 3, "900.00"),
         make_sale("Cabo", 1, "5.5"),
     ]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     expected: str = json.dumps(EXPECTED_PAYLOAD, indent=2)
     assert format_json(report) == expected
 
 
 def test_format_json_without_sales() -> None:
     sales: list[Sale] = []
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     expected: str = json.dumps(EMPTY_PAYLOAD, indent=2)
     assert format_json(report) == expected
 
 
 def test_format_json_is_indented() -> None:
     sales: list[Sale] = [make_sale("Mouse", 1, "10.00")]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     text: str = format_json(report)
     assert text.startswith('{\n  "products": [')
 
 
 def test_format_json_rounds_only_on_output() -> None:
     sales: list[Sale] = [make_sale("Bala", 1, "0.005")]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     assert '"grand_total": 0.01' in format_json(report)
     assert report.grand_total == Decimal("0.005")
 
 
 def test_format_json_keeps_non_ascii_characters_readable() -> None:
     sales: list[Sale] = [make_sale("Teclado Mecânico", 1, "150.00")]
-    report: Report = make_report(sales)
+    report: Report = summarize(sales)
     text: str = format_json(report)
     assert "Teclado Mecânico" in text
     assert "\\u00e2" not in text
