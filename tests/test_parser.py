@@ -64,6 +64,42 @@ INVALID_ROWS: Final[list[list[str]]] = [
     [],
 ]
 
+TOO_LARGE_ROWS: Final[list[list[str]]] = [
+    ["Mouse", "1e30", "10"],
+    ["Mouse", "1", "1e30"],
+    ["Mouse", "1000000001", "10"],
+    ["Mouse", "1", "1000000001"],
+]
+
+VALID_CSV: Final[str] = (
+    "data;produto;quantidade;preço unitário\n"
+    "2025-03-01;Mouse;2;50,00\n"
+    "01/03/2025;Teclado;1;150,00\n"
+    ";Monitor;1;900,00\n"
+)
+
+INVALID_ROWS_CSV: Final[str] = (
+    "produto,quantidade,preco\n"
+    "Mouse,2,50.00\n"
+    ",1,10.00\n"
+    "Teclado,abc,150.00\n"
+    "Monitor,1,900.00\n"
+)
+
+QUOTED_FIELD_CSV: Final[str] = 'produto,quantidade,preco\n"Cabo, USB",2,5.00\n'
+
+BLANK_LINES_CSV: Final[str] = (
+    "\nproduto,quantidade,preco\n\nMouse,2,50.00\n,,\nTeclado,1,150.00\n\n"
+)
+
+LATIN1_CSV: Final[str] = "produto;quantidade;preço\nTeclado Mecânico;1;150,00\n"
+
+HEADER_ONLY_CSV: Final[str] = "produto,quantidade,preco\n"
+
+ALL_INVALID_CSV: Final[str] = "produto,quantidade,preco\n,1,10\nMouse,x,10\n"
+
+MISSING_COLUMNS_CSV: Final[str] = "a;b\n1;2\n"
+
 
 @pytest.mark.parametrize("encoding", ENCODINGS_UNDER_TEST)
 def test_read_text_decodes_supported_encodings(tmp_path: Path, encoding: str) -> None:
@@ -188,34 +224,16 @@ def test_row_to_sale_rejects_invalid_rows(row: list[str]) -> None:
         _ = row_to_sale(row, COLUMNS_WITHOUT_DATE)
 
 
-VALID_CSV: Final[str] = (
-    "data;produto;quantidade;preço unitário\n"
-    "2025-03-01;Mouse;2;50,00\n"
-    "01/03/2025;Teclado;1;150,00\n"
-    ";Monitor;1;900,00\n"
-)
+@pytest.mark.parametrize("row", TOO_LARGE_ROWS)
+def test_row_to_sale_rejects_values_above_the_limit(row: list[str]) -> None:
+    with pytest.raises(ValueError, match="too large"):
+        _ = row_to_sale(row, COLUMNS_WITHOUT_DATE)
 
-INVALID_ROWS_CSV: Final[str] = (
-    "produto,quantidade,preco\n"
-    "Mouse,2,50.00\n"
-    ",1,10.00\n"
-    "Teclado,abc,150.00\n"
-    "Monitor,1,900.00\n"
-)
 
-QUOTED_FIELD_CSV: Final[str] = 'produto,quantidade,preco\n"Cabo, USB",2,5.00\n'
-
-BLANK_LINES_CSV: Final[str] = (
-    "\nproduto,quantidade,preco\n\nMouse,2,50.00\n,,\nTeclado,1,150.00\n\n"
-)
-
-LATIN1_CSV: Final[str] = "produto;quantidade;preço\nTeclado Mecânico;1;150,00\n"
-
-HEADER_ONLY_CSV: Final[str] = "produto,quantidade,preco\n"
-
-ALL_INVALID_CSV: Final[str] = "produto,quantidade,preco\n,1,10\nMouse,x,10\n"
-
-MISSING_COLUMNS_CSV: Final[str] = "a;b\n1;2\n"
+def test_row_to_sale_accepts_values_at_the_limit() -> None:
+    row: list[str] = ["Mouse", "1000000000", "1000000000"]
+    sale: Sale = row_to_sale(row, COLUMNS_WITHOUT_DATE)
+    assert sale.total == Decimal(10**18)
 
 
 def write_csv(directory: Path, content: str, encoding: str = "utf-8") -> Path:
