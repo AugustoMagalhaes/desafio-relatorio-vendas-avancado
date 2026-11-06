@@ -89,4 +89,4 @@ def format_json(report: Report) -> str:
         "best_seller_by_units": optional_product(report.best_by_units),
         "best_seller_by_revenue": optional_product(report.best_by_revenue),
     }
-    return json.dumps(payload, indent=2)
+    return json.dumps(payload, indent=2, ensure_ascii=False)
