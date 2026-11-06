@@ -80,14 +80,14 @@ def test_supports_color_respects_no_color(clean_env: pytest.MonkeyPatch) -> None
         (logging.CRITICAL, RED),
     ],
 )
-def test_formatter_colours_by_level(level: int, color: str) -> None:
+def test_formatter_colors_by_level(level: int, color: str) -> None:
     out: str = ColorFormatter(LOG_FORMAT, LOG_DATE_FORMAT).format(make_record(level))
     assert out.startswith(color)
     assert out.endswith(RESET)
     assert "hello" in out
 
 
-def test_formatter_leaves_info_uncoloured() -> None:
+def test_formatter_leaves_info_uncolored() -> None:
     out: str = ColorFormatter(LOG_FORMAT, LOG_DATE_FORMAT).format(
         make_record(logging.INFO)
     )
@@ -123,7 +123,7 @@ def test_setup_logging_child_loggers_reach_the_handler() -> None:
 
 
 @pytest.mark.usefixtures("clean_env")
-def test_setup_logging_uses_colour_on_tty() -> None:
+def test_setup_logging_uses_color_on_tty() -> None:
     stream: FakeStream = FakeStream(True)
     setup_logging(logging.INFO, stream).warning("careful")
     assert YELLOW in stream.getvalue()
