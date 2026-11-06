@@ -194,6 +194,8 @@ def test_main_keeps_report_on_stdout_and_logs_on_stderr(
 ) -> None:
     path: Path = write_csv(tmp_path, CSV_CONTENT)
     _ = main([str(path)])
+    out: str
+    err: str
     out, err = capsys.readouterr()
     assert "Read 3 sale(s)" not in out
     assert "Read 3 sale(s) from sales.csv" in err
@@ -220,6 +222,8 @@ def test_main_warns_when_date_filter_is_ignored(
 ) -> None:
     path: Path = write_csv(tmp_path, NO_DATE_CSV_CONTENT)
     code: int = main([str(path), "--start", "2025-01-01"])
+    out: str
+    err: str
     out, err = capsys.readouterr()
     assert code == 0
     assert "Date filter ignored" in err
@@ -231,6 +235,8 @@ def test_main_returns_error_for_missing_file(
 ) -> None:
     path: Path = tmp_path / "missing.csv"
     code: int = main([str(path)])
+    out: str
+    err: str
     out, err = capsys.readouterr()
     assert code == 1
     assert "File not found" in err
