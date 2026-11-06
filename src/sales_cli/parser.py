@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import date
@@ -112,3 +114,38 @@ def row_to_sale(row: Sequence[str], columns: Mapping[str, int]) -> Sale:
         quantity=quantity,
         unit_price=unit_price,
     )
+
+
+def parse_sales(path: Path) -> list[Sale]:
+    text: str = read_text(path)
+    delimiter: str = detect_delimiter(text)
+    rows: list[list[str]] = list(
+        csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
+    )
+    numbered_rows: list[tuple[int, list[str]]] = [
+        (number, row)
+        for number, row in enumerate(rows, start=1)
+        if any(cell.strip() for cell in row)
+    ]
+    if not numbered_rows:
+        raise ParseError(f"no data found in {path.name}")
+    columns: dict[str, int] = map_columns(numbered_rows[0][1])
+    LOGGER.debug("Delimiter %r, columns %s", delimiter, columns)
+    sales: list[Sale] = []
+    skipped: int = 0
+    for number, row in numbered_rows[1:]:
+        try:
+            sales.append(row_to_sale(row, columns))
+        except ValueError as error:
+            skipped += 1
+            LOGGER.debug("Skipped row %d: %s", number, error)
+    if skipped:
+        LOGGER.warning(
+            "Skipped %d invalid row(s) in %s (use -v for details)",
+            skipped,
+            path.name,
+        )
+    if not sales:
+        raise ParseError(f"no valid sales found in {path.name}")
+    LOGGER.info("Read %d sale(s) from %s", len(sales), path.name)
+    return sales
