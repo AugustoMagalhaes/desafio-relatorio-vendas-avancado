@@ -36,6 +36,7 @@ def column_widths(rows: Sequence[Row]) -> tuple[int, int, int]:
 
 def format_row(row: Row, widths: tuple[int, int, int]) -> str:
     product, units, revenue = row
+
     return f"{product:<{widths[0]}} | {units:>{widths[1]}} | {revenue:>{widths[2]}}"
 
 
@@ -45,14 +46,17 @@ def format_table(products: Sequence[ProductTotal]) -> list[str]:
     separator: str = "-+-".join("-" * width for width in widths)
     lines: list[str] = [format_row(HEADER, widths), separator]
     lines.extend(format_row(row, widths) for row in rows[1:])
+
     return lines
 
 
 def format_text(report: Report) -> str:
     best_units: ProductTotal | None = report.best_by_units
     best_revenue: ProductTotal | None = report.best_by_revenue
+
     if best_units is None or best_revenue is None:
         return NO_SALES_MESSAGE
+
     revenue_text: str = format_money(best_revenue.revenue)
     lines: list[str] = format_table(report.products)
     lines.extend(
@@ -63,6 +67,7 @@ def format_text(report: Report) -> str:
             f"Best seller (revenue): {best_revenue.product} ({revenue_text})",
         ]
     )
+
     return "\n".join(lines)
 
 
@@ -89,4 +94,5 @@ def format_json(report: Report) -> str:
         "best_seller_by_units": optional_product(report.best_by_units),
         "best_seller_by_revenue": optional_product(report.best_by_revenue),
     }
+
     return json.dumps(payload, indent=2, ensure_ascii=False)

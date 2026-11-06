@@ -47,6 +47,7 @@ def revenue_rank(item: ProductTotal) -> tuple[Decimal, str]:
 
 def summarize(sales: Sequence[Sale]) -> Report:
     totals: dict[str, ProductTotal] = {}
+
     for sale in sales:
         key: str = sale.product.casefold()
         current: ProductTotal | None = totals.get(key)
@@ -62,12 +63,14 @@ def summarize(sales: Sequence[Sale]) -> Report:
                 quantity=current.quantity + sale.quantity,
                 revenue=current.revenue + sale.total,
             )
+
     products: tuple[ProductTotal, ...] = tuple(
         sorted(totals.values(), key=revenue_rank)
     )
     grand_total: Decimal = sum((item.revenue for item in products), Decimal(0))
     best_by_units: ProductTotal | None = min(products, key=units_rank, default=None)
     best_by_revenue: ProductTotal | None = products[0] if products else None
+
     return Report(
         products=products,
         grand_total=grand_total,
@@ -78,10 +81,12 @@ def summarize(sales: Sequence[Sale]) -> Report:
 
 def is_within(sale: Sale, start: date | None, end: date | None) -> bool:
     day: date | None = sale.sale_date
+
     if day is None:
         return False
     if start is not None and day < start:
         return False
+
     return end is None or day <= end
 
 
@@ -90,7 +95,9 @@ def filter_by_date(
 ) -> list[Sale]:
     if start is None and end is None:
         return list(sales)
+
     undated: int = sum(1 for sale in sales if sale.sale_date is None)
+
     if undated == len(sales):
         LOGGER.warning("Date filter ignored: no sale has a recognized date")
         return list(sales)
@@ -99,8 +106,12 @@ def filter_by_date(
             "Excluded %d sale(s) without a recognized date from the filtered period",
             undated,
         )
+
     matching: list[Sale] = [sale for sale in sales if is_within(sale, start, end)]
+
     if not matching:
         LOGGER.warning("No sales match the selected period")
+
     LOGGER.info("Date filter kept %d of %d sale(s)", len(matching), len(sales))
+
     return matching
