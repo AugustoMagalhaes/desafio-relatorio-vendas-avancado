@@ -102,6 +102,14 @@ MISSING_COLUMNS_CSV: Final[str] = "a;b\n1;2\n"
 
 HUGE_FIELD_CSV: Final[str] = "produto;quantidade;preco\n" + "A" * 200_000 + ";1;1\n"
 
+CURRENCY_HEADERS: Final[list[str]] = [
+    "Preço Unitário (R$)",
+    "Preço (R$)",
+    "Valor Unitário (R$)",
+]
+
+CURRENCY_HEADER_CSV: Final[str] = "Produto;Quantidade;Preço Unitário (R$)\nMouse;1;10\n"
+
 
 @pytest.mark.parametrize("encoding", ENCODINGS_UNDER_TEST)
 def test_read_text_decodes_supported_encodings(tmp_path: Path, encoding: str) -> None:
@@ -175,6 +183,12 @@ def test_map_columns_reports_missing_required_columns() -> None:
     header: list[str] = ["data", "produto"]
     with pytest.raises(ParseError, match="quantity, unit_price"):
         _ = map_columns(header)
+
+
+@pytest.mark.parametrize("name", CURRENCY_HEADERS)
+def test_map_columns_accepts_currency_suffix_in_price_header(name: str) -> None:
+    header: list[str] = ["Produto", "Quantidade", name]
+    assert map_columns(header) == COLUMNS_WITHOUT_DATE
 
 
 def test_row_to_sale_with_all_fields() -> None:
@@ -347,3 +361,9 @@ def test_parse_sales_raises_for_malformed_csv(tmp_path: Path) -> None:
     path: Path = write_csv(tmp_path, HUGE_FIELD_CSV)
     with pytest.raises(ParseError, match="invalid CSV"):
         _ = parse_sales(path)
+
+
+def test_parse_sales_accepts_currency_suffix_in_header(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, CURRENCY_HEADER_CSV)
+    sales: list[Sale] = parse_sales(path)
+    assert sales[0].unit_price == Decimal(10)
