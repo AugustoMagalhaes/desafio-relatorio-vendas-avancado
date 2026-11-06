@@ -36,6 +36,8 @@ OVERFLOW_CSV_CONTENT: Final[str] = (
     "produto;quantidade;preco\nMouse;2;50,00\nCobre;1;1e30\n"
 )
 
+HUGE_FIELD_CONTENT: Final[str] = "produto;quantidade;preco\n" + "A" * 200_000 + ";1;1\n"
+
 
 def test_parse_arguments_defaults() -> None:
     argv: list[str] = ["sales.csv"]
@@ -272,6 +274,15 @@ def test_main_skips_rows_with_values_too_large_to_format(
     assert code == 0
     assert "Skipped 1" in err
     assert "Grand total: 100.00" in out
+
+
+def test_main_returns_error_for_malformed_csv(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path: Path = write_csv(tmp_path, HUGE_FIELD_CONTENT)
+    code: int = main([str(path)])
+    assert code == 1
+    assert "invalid CSV" in capsys.readouterr().err
 
 
 def test_module_runs_as_command_and_separates_streams(tmp_path: Path) -> None:

@@ -100,6 +100,8 @@ ALL_INVALID_CSV: Final[str] = "produto,quantidade,preco\n,1,10\nMouse,x,10\n"
 
 MISSING_COLUMNS_CSV: Final[str] = "a;b\n1;2\n"
 
+HUGE_FIELD_CSV: Final[str] = "produto;quantidade;preco\n" + "A" * 200_000 + ";1;1\n"
+
 
 @pytest.mark.parametrize("encoding", ENCODINGS_UNDER_TEST)
 def test_read_text_decodes_supported_encodings(tmp_path: Path, encoding: str) -> None:
@@ -338,4 +340,10 @@ def test_parse_sales_raises_when_all_rows_are_invalid(tmp_path: Path) -> None:
 def test_parse_sales_raises_for_missing_columns(tmp_path: Path) -> None:
     path: Path = write_csv(tmp_path, MISSING_COLUMNS_CSV)
     with pytest.raises(ParseError, match="missing required columns"):
+        _ = parse_sales(path)
+
+
+def test_parse_sales_raises_for_malformed_csv(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, HUGE_FIELD_CSV)
+    with pytest.raises(ParseError, match="invalid CSV"):
         _ = parse_sales(path)
