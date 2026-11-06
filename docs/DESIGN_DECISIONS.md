@@ -245,6 +245,28 @@ Como os CSVs podem não ter datas, ou ter datas em formato não reconhecido (D-1
 
 Os avisos usam o nível WARNING, exibido em amarelo no terminal (D-09). A validação de que o início não é posterior ao fim é feita na camada de entrada (CLI), junto com a leitura dos argumentos.
 
+## D-22 Saída em texto
+
+`format_text` (`output.py`) gera a tabela de produtos, o total geral e os produtos mais vendidos por quantidade e por receita. A função apenas devolve uma `str`; quem imprime é a camada de entrada, o que mantém o módulo de saída testável sem capturar stdout.
+
+O arredondamento para duas casas decimais acontece somente no módulo de saída (D-10), com `quantize` e `ROUND_HALF_UP`, o arredondamento comercial usual. O modo é explícito porque a formatação de `Decimal` do Python usa por padrão o arredondamento "half even", que arredonda 0,125 para 0,12. Os valores no `core` permanecem exatos.
+
+A tabela é ASCII, com a largura de cada coluna calculada pelo conteúdo, produto alinhado à esquerda e números à direita. Os valores são impressos sem símbolo de moeda nem separador de milhar, para que a saída não dependa de localidade e possa ser lida por outras ferramentas. Os rótulos estão em inglês, seguindo a D-01.
+
+Sem vendas, a saída é a mensagem `No sales to report.`
+
+## D-23 Saída em JSON
+
+`format_json` (`output.py`) devolve o relatório como uma `str` JSON indentada com dois espaços, com as chaves `products`, `grand_total`, `best_seller_by_units` e `best_seller_by_revenue`. Cada produto tem `product`, `quantity` e `revenue`. Como na saída em texto, a função só devolve a string; a impressão é responsabilidade da camada de entrada.
+
+Os valores monetários são números JSON, e não strings, para que quem consome possa somá-los e ordená-los sem conversão. Como o módulo `json` não serializa `Decimal`, o valor é arredondado a duas casas com a mesma função usada no texto (D-22) e só então convertido para `float`. Como o valor já está arredondado, a conversão não introduz diferença visível nos valores esperados de um relatório de vendas.
+
+Sem vendas, `products` é uma lista vazia, `grand_total` é `0.0` e os campos de melhor vendedor são `null`.
+
+Caracteres não ASCII são escapados (`\u00e2`), que é o comportamento padrão do `json`. Como o JSON se destina a ser lido por programas, o escape evita problemas de codificação em terminais e pipes.
+
+O relatório vai para a saída padrão e os logs vão para a saída de erro (D-09), de modo que a saída JSON possa ser redirecionada ou encadeada com outras ferramentas sem ser contaminada por mensagens.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
