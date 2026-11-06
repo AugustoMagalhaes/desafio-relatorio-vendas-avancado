@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from typing import Final
 
@@ -8,8 +9,10 @@ import pytest
 from sales_cli.core import Report, Sale, summarize
 from sales_cli.output import (
     NO_SALES_MESSAGE,
+    format_json,
     format_money,
     format_text,
+    money_number,
     quantize_money,
 )
 
@@ -107,3 +110,79 @@ def test_format_text_single_unit_wording() -> None:
     sales: list[Sale] = [make_sale("Mouse", 1, "10.00")]
     report: Report = make_report(sales)
     assert "Best seller (units): Mouse (1 sold)" in format_text(report)
+
+
+MONEY_NUMBER_CASES: Final[list[tuple[str, float]]] = [
+    ("2.675", 2.68),
+    ("0.1", 0.1),
+    ("1234.5", 1234.5),
+    ("0", 0.0),
+    ("99.999", 100.0),
+]
+
+EXPECTED_PAYLOAD: Final[dict[str, object]] = {
+    "products": [
+        {"product": "Monitor", "quantity": 3, "revenue": 2700.0},
+        {"product": "Mouse", "quantity": 10, "revenue": 100.0},
+        {"product": "Cabo", "quantity": 1, "revenue": 5.5},
+    ],
+    "grand_total": 2805.5,
+    "best_seller_by_units": {"product": "Mouse", "quantity": 10, "revenue": 100.0},
+    "best_seller_by_revenue": {
+        "product": "Monitor",
+        "quantity": 3,
+        "revenue": 2700.0,
+    },
+}
+
+EMPTY_PAYLOAD: Final[dict[str, object]] = {
+    "products": [],
+    "grand_total": 0.0,
+    "best_seller_by_units": None,
+    "best_seller_by_revenue": None,
+}
+
+
+@pytest.mark.parametrize(("value", "expected"), MONEY_NUMBER_CASES)
+def test_money_number_rounds_before_converting(value: str, expected: float) -> None:
+    assert money_number(Decimal(value)) == expected
+
+
+def test_format_json_full_report() -> None:
+    sales: list[Sale] = [
+        make_sale("Mouse", 10, "10.00"),
+        make_sale("Monitor", 3, "900.00"),
+        make_sale("Cabo", 1, "5.5"),
+    ]
+    report: Report = make_report(sales)
+    expected: str = json.dumps(EXPECTED_PAYLOAD, indent=2)
+    assert format_json(report) == expected
+
+
+def test_format_json_without_sales() -> None:
+    sales: list[Sale] = []
+    report: Report = make_report(sales)
+    expected: str = json.dumps(EMPTY_PAYLOAD, indent=2)
+    assert format_json(report) == expected
+
+
+def test_format_json_is_indented() -> None:
+    sales: list[Sale] = [make_sale("Mouse", 1, "10.00")]
+    report: Report = make_report(sales)
+    text: str = format_json(report)
+    assert text.startswith('{\n  "products": [')
+
+
+def test_format_json_rounds_only_on_output() -> None:
+    sales: list[Sale] = [make_sale("Bala", 1, "0.005")]
+    report: Report = make_report(sales)
+    assert '"grand_total": 0.01' in format_json(report)
+    assert report.grand_total == Decimal("0.005")
+
+
+def test_format_json_escapes_non_ascii_characters() -> None:
+    sales: list[Sale] = [make_sale("Teclado Mecânico", 1, "150.00")]
+    report: Report = make_report(sales)
+    text: str = format_json(report)
+    assert text.isascii()
+    assert "Mec\\u00e2nico" in text
