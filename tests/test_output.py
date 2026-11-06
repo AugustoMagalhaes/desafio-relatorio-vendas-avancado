@@ -180,9 +180,9 @@ def test_format_json_rounds_only_on_output() -> None:
     assert report.grand_total == Decimal("0.005")
 
 
-def test_format_json_escapes_non_ascii_characters() -> None:
+def test_format_json_keeps_non_ascii_characters_readable() -> None:
     sales: list[Sale] = [make_sale("Teclado Mecânico", 1, "150.00")]
     report: Report = make_report(sales)
     text: str = format_json(report)
-    assert text.isascii()
-    assert "Mec\\u00e2nico" in text
+    assert "Teclado Mecânico" in text
+    assert "\\u00e2" not in text
