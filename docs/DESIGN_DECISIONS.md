@@ -305,9 +305,33 @@ O estágio de teste executa apenas o `pytest`. As verificações de estilo e de 
 
 Não há camada separada para o cache de dependências, pois o projeto não tem dependências de execução (D-04). O `.dockerignore` mantém fora do contexto de build o histórico do Git, ambientes virtuais, caches, documentação e exemplos, o que reduz o contexto enviado ao Docker e evita copiar arquivos locais para a imagem.
 
+## D-27 README
+
+O README está em dois arquivos: `README.md`, em inglês, e `README.pt-BR.md`, em português, com um link para o outro no topo de cada um. O inglês é o principal porque o código, os logs, as mensagens da CLI e a ajuda estão em inglês (D-01) e o README é a primeira página que o leitor vê; o `pyproject.toml` também o usa como descrição do pacote. A versão em português atende ao enunciado do desafio e deve ser mantida em sincronia com a principal sempre que o comportamento documentado mudar. Este documento permanece em português.
+
+Os dois arquivos documentam os dois caminhos de instalação e uso: ambiente virtual e Docker (D-26). Descrevem também o formato de CSV aceito (codificações, delimitadores, nomes de colunas, formatos de data e de número), o comportamento do filtro de datas, os códigos de saída e o fluxo de desenvolvimento, para que o comportamento descrito em decisões anteriores possa ser consultado sem ler o código.
+
+Os exemplos de saída foram copiados de execuções reais dos CSVs do diretório `examples`, e não escritos à mão, para que o README reflita o comportamento do programa. O badge de status do CI aponta para o workflow da `main` (D-14).
+
+O topo de cada README exibe badges de status (CI, cobertura, versão mínima do Python e ferramentas de qualidade); o de versão do Python é estático e deve ser atualizado junto com o `requires-python` do `pyproject.toml` (D-07).
+
+## D-28 Relatório de cobertura
+
+O CI envia o relatório de cobertura ao Codecov, que alimenta o badge de cobertura do README. O upload usa o token guardado como segredo do repositório (`CODECOV_TOKEN`) e é feito por uma única versão do Python (3.12), para que a matriz de versões (D-14) não produza relatórios duplicados do mesmo código.
+
+O envio é configurado com `fail_ci_if_error: false`: uma indisponibilidade do serviço externo não reprova o CI. O critério mínimo de cobertura continua sendo aplicado pelo próprio `pytest` (`fail_under` de 80% no `pyproject.toml`, D-05), de modo que o Codecov serve para visibilidade e não como barreira de merge.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
 |---|---|---|
 | 0 | chore/project-scaffold | Estrutura, pyproject, pytest.ini, docs/DESIGN_DECISIONS.md |
 | 1 | feat/utils-helpers | utils.py (tty, cores, logging, normalização, parse de número e data), testes e tipagem completa |
+| 2 | ci/github-actions | Workflow de CI (lint, formatação, tipos e testes em Python 3.10 a 3.14), ruleset da `main` com checks obrigatórios, D-14 e D-15 |
+| 3 | feat/csv-parser | Modelo `Sale`, leitura com fallback de codificação, detecção de delimitador, aliases de colunas PT/EN, validação de linhas e `parse_sales` |
+| 4 | feat/core-and-date-filter | Totais por produto, total geral, mais vendido por unidades e por receita, filtro por período com avisos |
+| 5 | feat/output-formatters | Saída em texto (tabela ASCII) e em JSON, arredondamento comercial apenas na saída |
+| 6 | feat/cli-entrypoint | Argumentos do `argparse`, função `main`, relatório na saída padrão e logs na de erro, códigos de saída 0, 1 e 2 |
+| 7 | build/docker-support | `Dockerfile` multi-estágio (`base`, `test`, `runtime`), usuário sem root e `.dockerignore` |
+| 7.1 | fix/json-non-ascii | JSON com caracteres não ASCII legíveis, em vez de escapados |
+| 8 | docs/readme | README em inglês e português, badges de status, relatório de cobertura no Codecov |
