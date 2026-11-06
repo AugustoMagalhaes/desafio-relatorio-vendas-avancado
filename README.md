@@ -177,8 +177,8 @@ data;produto;quantidade;preço unitário
 
 ### Values
 
-- **Quantity:** a non-negative whole number (`3` and `3.0` are accepted).
-- **Price:** a non-negative number, with or without the `R$` prefix. Accepts `1234.50`, `10,5` and `1.234,50`.
+- **Quantity:** a non-negative whole number up to 1,000,000,000 (`3` and `3.0` are accepted).
+- **Price:** a non-negative number up to 1,000,000,000, with or without the `R$` prefix. Accepts `1234.50`, `10,5` and `1.234,50`.
 - **Dates:** `YYYY-MM-DD`, `YYYY/MM/DD`, `YYYY.MM.DD`, `DD/MM/YYYY`, `DD-MM-YYYY`, `DD.MM.YYYY`, `DD/MM/YY`, `MM/DD/YYYY` and `MM-DD-YYYY`. A time part is ignored. When the format is ambiguous (for example `01/02/2025`), the day comes first.
 - **Products** spelled the same way, ignoring case, are added together.
 

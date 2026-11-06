@@ -321,6 +321,14 @@ O CI envia o relatório de cobertura ao Codecov, que alimenta o badge de cobertu
 
 O envio é configurado com `fail_ci_if_error: false`: uma indisponibilidade do serviço externo não reprova o CI. O critério mínimo de cobertura continua sendo aplicado pelo próprio `pytest` (`fail_under` de 80% no `pyproject.toml`, D-05), de modo que o Codecov serve para visibilidade e não como barreira de merge.
 
+## D-29 Limite de valores
+
+Quantidade e preço unitário têm um limite máximo de 1.000.000.000 (`MAX_AMOUNT`, em `parser.py`). Uma linha com valor acima do limite é tratada como inválida, no mesmo mecanismo da D-19: é ignorada, entra no aviso único com a contagem e o motivo aparece com `-v`.
+
+A regra existe porque `Decimal` aceita expoentes arbitrariamente grandes (por exemplo `1e30`), mas o arredondamento para duas casas (D-22) usa a precisão padrão de 28 dígitos e levanta `decimal.InvalidOperation` quando o resultado não cabe. Sem o limite, uma única linha com um valor desse tipo derrubava o programa com traceback, apenas na hora de imprimir. Com o limite de 10^9 por campo, o total de uma linha é no máximo 10^18, o que mantém a soma de dezenas de milhões de linhas dentro da precisão.
+
+A validação de sinal e de limite ficam na mesma função (`check_amount`), usada tanto para a quantidade quanto para o preço.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
