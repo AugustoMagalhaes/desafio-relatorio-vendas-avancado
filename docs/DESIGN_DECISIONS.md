@@ -211,6 +211,16 @@ Uma data vazia ou em formato não reconhecido resulta em `sale_date=None`, sem i
 
 Limitação conhecida: um valor como `1.000` ou `1,000`, com um único separador e três casas, é interpretado como decimal (1,000), não como milhar. Valores com os dois separadores (`1.234,50`) são interpretados corretamente (D-10).
 
+## D-19 Leitura completa e tratamento de linhas inválidas
+
+`parse_sales` lê o arquivo, detecta o delimitador, mapeia as colunas e converte cada linha em `Sale`, devolvendo a lista de vendas.
+
+O arquivo é lido com `io.StringIO(text, newline="")`, conforme recomendado pela documentação do módulo `csv`, para que campos entre aspas contendo o delimitador ou quebras de linha sejam interpretados corretamente. Linhas em branco, ou com todas as células vazias, são ignoradas sem aviso.
+
+Uma linha inválida não interrompe a leitura: ela é ignorada e contada. Ao final, é emitido um único WARNING com o total de linhas ignoradas, para não poluir a saída em arquivos grandes. O motivo de cada linha, com o seu número, é registrado em nível DEBUG e fica visível com `-v`. O número da linha refere-se à posição no arquivo, contando o cabeçalho e as linhas em branco, e não considera quebras de linha dentro de campos entre aspas.
+
+São erros fatais (`ParseError`): arquivo sem dados, cabeçalho sem as colunas obrigatórias e arquivo sem nenhuma venda válida. Nesses casos não há relatório útil a produzir, e a camada de entrada converte o erro em mensagem clara e código de saída 1. Um resumo com a quantidade de vendas lidas é registrado em nível INFO.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
