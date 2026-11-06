@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,7 @@ from sales_cli.parser import (
     ParseError,
     detect_delimiter,
     map_columns,
+    parse_sales,
     read_text,
     row_to_sale,
 )
@@ -184,3 +186,138 @@ def test_row_to_sale_strips_whitespace() -> None:
 def test_row_to_sale_rejects_invalid_rows(row: list[str]) -> None:
     with pytest.raises(ValueError):
         _ = row_to_sale(row, COLUMNS_WITHOUT_DATE)
+
+
+VALID_CSV: Final[str] = (
+    "data;produto;quantidade;preço unitário\n"
+    "2025-03-01;Mouse;2;50,00\n"
+    "01/03/2025;Teclado;1;150,00\n"
+    ";Monitor;1;900,00\n"
+)
+
+INVALID_ROWS_CSV: Final[str] = (
+    "produto,quantidade,preco\n"
+    "Mouse,2,50.00\n"
+    ",1,10.00\n"
+    "Teclado,abc,150.00\n"
+    "Monitor,1,900.00\n"
+)
+
+QUOTED_FIELD_CSV: Final[str] = 'produto,quantidade,preco\n"Cabo, USB",2,5.00\n'
+
+BLANK_LINES_CSV: Final[str] = (
+    "\nproduto,quantidade,preco\n\nMouse,2,50.00\n,,\nTeclado,1,150.00\n\n"
+)
+
+LATIN1_CSV: Final[str] = "produto;quantidade;preço\nTeclado Mecânico;1;150,00\n"
+
+HEADER_ONLY_CSV: Final[str] = "produto,quantidade,preco\n"
+
+ALL_INVALID_CSV: Final[str] = "produto,quantidade,preco\n,1,10\nMouse,x,10\n"
+
+MISSING_COLUMNS_CSV: Final[str] = "a;b\n1;2\n"
+
+
+def write_csv(directory: Path, content: str, encoding: str = "utf-8") -> Path:
+    path: Path = directory / "sales.csv"
+    _ = path.write_bytes(content.encode(encoding))
+    return path
+
+
+def test_parse_sales_reads_dates_and_values(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, VALID_CSV)
+    sales: list[Sale] = parse_sales(path)
+    assert [sale.product for sale in sales] == ["Mouse", "Teclado", "Monitor"]
+    assert [sale.sale_date for sale in sales] == [
+        date(2025, 3, 1),
+        date(2025, 3, 1),
+        None,
+    ]
+    assert sales[0].unit_price == Decimal("50.00")
+
+
+def test_parse_sales_supports_comma_delimiter(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, INVALID_ROWS_CSV)
+    sales: list[Sale] = parse_sales(path)
+    assert [sale.product for sale in sales] == ["Mouse", "Monitor"]
+
+
+def test_parse_sales_supports_quoted_field_with_delimiter(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, QUOTED_FIELD_CSV)
+    sales: list[Sale] = parse_sales(path)
+    assert sales[0].product == "Cabo, USB"
+
+
+def test_parse_sales_decodes_latin1_file(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, LATIN1_CSV, encoding="latin-1")
+    sales: list[Sale] = parse_sales(path)
+    assert sales[0].product == "Teclado Mecânico"
+
+
+def test_parse_sales_ignores_blank_rows_without_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    path: Path = write_csv(tmp_path, BLANK_LINES_CSV)
+    with caplog.at_level(logging.DEBUG, logger="sales_cli.parser"):
+        sales: list[Sale] = parse_sales(path)
+    levels: list[int] = [record.levelno for record in caplog.records]
+    assert len(sales) == 2
+    assert logging.WARNING not in levels
+
+
+def test_parse_sales_warns_once_and_details_at_debug(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    path: Path = write_csv(tmp_path, INVALID_ROWS_CSV)
+    with caplog.at_level(logging.DEBUG, logger="sales_cli.parser"):
+        sales: list[Sale] = parse_sales(path)
+    warnings: list[str] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.WARNING
+    ]
+    details: list[str] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.DEBUG and "Skipped row" in record.getMessage()
+    ]
+    assert len(sales) == 2
+    assert len(warnings) == 1
+    assert "Skipped 2" in warnings[0]
+    assert len(details) == 2
+    assert details[0].startswith("Skipped row 3")
+    assert details[1].startswith("Skipped row 4")
+
+
+def test_parse_sales_logs_summary_at_info(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    path: Path = write_csv(tmp_path, VALID_CSV)
+    with caplog.at_level(logging.INFO, logger="sales_cli.parser"):
+        _ = parse_sales(path)
+    messages: list[str] = [record.getMessage() for record in caplog.records]
+    assert "Read 3 sale(s) from sales.csv" in messages
+
+
+def test_parse_sales_raises_for_empty_file(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, "")
+    with pytest.raises(ParseError, match="no data"):
+        _ = parse_sales(path)
+
+
+def test_parse_sales_raises_for_header_only_file(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, HEADER_ONLY_CSV)
+    with pytest.raises(ParseError, match="no valid sales"):
+        _ = parse_sales(path)
+
+
+def test_parse_sales_raises_when_all_rows_are_invalid(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, ALL_INVALID_CSV)
+    with pytest.raises(ParseError, match="no valid sales"):
+        _ = parse_sales(path)
+
+
+def test_parse_sales_raises_for_missing_columns(tmp_path: Path) -> None:
+    path: Path = write_csv(tmp_path, MISSING_COLUMNS_CSV)
+    with pytest.raises(ParseError, match="missing required columns"):
+        _ = parse_sales(path)
