@@ -255,6 +255,18 @@ A tabela é ASCII, com a largura de cada coluna calculada pelo conteúdo, produt
 
 Sem vendas, a saída é a mensagem `No sales to report.`
 
+## D-23 Saída em JSON
+
+`format_json` (`output.py`) devolve o relatório como uma `str` JSON indentada com dois espaços, com as chaves `products`, `grand_total`, `best_seller_by_units` e `best_seller_by_revenue`. Cada produto tem `product`, `quantity` e `revenue`. Como na saída em texto, a função só devolve a string; a impressão é responsabilidade da camada de entrada.
+
+Os valores monetários são números JSON, e não strings, para que quem consome possa somá-los e ordená-los sem conversão. Como o módulo `json` não serializa `Decimal`, o valor é arredondado a duas casas com a mesma função usada no texto (D-22) e só então convertido para `float`. Como o valor já está arredondado, a conversão não introduz diferença visível nos valores esperados de um relatório de vendas.
+
+Sem vendas, `products` é uma lista vazia, `grand_total` é `0.0` e os campos de melhor vendedor são `null`.
+
+Caracteres não ASCII são escapados (`\u00e2`), que é o comportamento padrão do `json`. Como o JSON se destina a ser lido por programas, o escape evita problemas de codificação em terminais e pipes.
+
+O relatório vai para a saída padrão e os logs vão para a saída de erro (D-09), de modo que a saída JSON possa ser redirecionada ou encadeada com outras ferramentas sem ser contaminada por mensagens.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
