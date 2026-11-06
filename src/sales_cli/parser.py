@@ -32,6 +32,7 @@ HEADER_ALIASES: Final[dict[str, tuple[str, ...]]] = {
     ),
 }
 REQUIRED_FIELDS: Final[tuple[str, ...]] = ("product", "quantity", "unit_price")
+MAX_AMOUNT: Final[Decimal] = Decimal(10**9)
 
 
 class ParseError(Exception):
@@ -87,12 +88,18 @@ def get_cell(row: Sequence[str], columns: Mapping[str, int], field: str) -> str:
     return row[index].strip()
 
 
+def check_amount(value: Decimal, name: str) -> None:
+    if value < 0:
+        raise ValueError(f"{name} is negative: {value}")
+    if value > MAX_AMOUNT:
+        raise ValueError(f"{name} is too large: {value}")
+
+
 def parse_quantity(text: str) -> int:
     value: Decimal = parse_decimal(text)
     if value != value.to_integral_value():
         raise ValueError(f"quantity is not a whole number: {text!r}")
-    if value < 0:
-        raise ValueError(f"quantity is negative: {text!r}")
+    check_amount(value, "quantity")
     return int(value)
 
 
@@ -102,8 +109,9 @@ def row_to_sale(row: Sequence[str], columns: Mapping[str, int]) -> Sale:
         raise ValueError("missing product")
     quantity: int = parse_quantity(get_cell(row, columns, "quantity"))
     unit_price: Decimal = parse_decimal(get_cell(row, columns, "unit_price"))
-    if unit_price < 0:
-        raise ValueError("unit price is negative")
+
+    check_amount(unit_price, "unit price")
+
     date_text: str = get_cell(row, columns, "date")
     sale_date: date | None = parse_date(date_text) if date_text else None
     if date_text and sale_date is None:
