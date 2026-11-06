@@ -197,6 +197,20 @@ O arquivo inteiro é lido em memória. Para o volume esperado de um relatório d
 
 Arquivo inexistente levanta `FileNotFoundError`, tratado na camada de entrada (CLI).
 
+## D-18 Colunas e validação de linhas
+
+As colunas são identificadas pelo nome do cabeçalho, normalizado com `normalize_text` (D-12), e comparado com uma lista de aliases em português e inglês (por exemplo, `produto` e `product`, `quantidade`, `qtd` e `quantity`, `preco_unitario` e `price`). Assim a ordem das colunas e diferenças de maiúsculas, acentos e espaços não importam. Colunas extras são ignoradas.
+
+Produto, quantidade e preço unitário são obrigatórios; a ausência de qualquer um levanta `ParseError` com a lista do que falta. A data é opcional (D-11).
+
+A leitura usa `csv.reader` e as colunas são mapeadas para índices. O `csv.DictReader` foi evitado porque seus valores são tipados como `str | Any`, o que enfraquece a tipagem estática.
+
+Regras de validação por linha: o produto não pode ser vazio; a quantidade deve ser um número inteiro não negativo (`3` e `3.0` são aceitos, `1.5` e `-1` não); o preço unitário deve ser um `Decimal` não negativo. Uma linha inválida levanta `ValueError`, e o tratamento (ignorar a linha e registrar o motivo) fica a cargo de quem lê o arquivo completo.
+
+Uma data vazia ou em formato não reconhecido resulta em `sale_date=None`, sem invalidar a linha. O texto não reconhecido é registrado em nível DEBUG.
+
+Limitação conhecida: um valor como `1.000` ou `1,000`, com um único separador e três casas, é interpretado como decimal (1,000), não como milhar. Valores com os dois separadores (`1.234,50`) são interpretados corretamente (D-10).
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
