@@ -305,6 +305,14 @@ O estágio de teste executa apenas o `pytest`. As verificações de estilo e de 
 
 Não há camada separada para o cache de dependências, pois o projeto não tem dependências de execução (D-04). O `.dockerignore` mantém fora do contexto de build o histórico do Git, ambientes virtuais, caches, documentação e exemplos, o que reduz o contexto enviado ao Docker e evita copiar arquivos locais para a imagem.
 
+## D-27 README
+
+O README está em dois arquivos: `README.md`, em inglês, e `README.pt-BR.md`, em português, com um link para o outro no topo de cada um. O inglês é o principal porque o código, os logs, as mensagens da CLI e a ajuda estão em inglês (D-01) e o README é a primeira página que o leitor vê; o `pyproject.toml` também o usa como descrição do pacote. A versão em português atende ao enunciado do desafio e deve ser mantida em sincronia com a principal sempre que o comportamento documentado mudar. Este documento permanece em português.
+
+Os dois arquivos documentam os dois caminhos de instalação e uso: ambiente virtual e Docker (D-26). Descrevem também o formato de CSV aceito (codificações, delimitadores, nomes de colunas, formatos de data e de número), o comportamento do filtro de datas, os códigos de saída e o fluxo de desenvolvimento, para que o comportamento descrito em decisões anteriores possa ser consultado sem ler o código.
+
+Os exemplos de saída foram copiados de execuções reais dos CSVs do diretório `examples`, e não escritos à mão, para que o README reflita o comportamento do programa. O badge de status do CI aponta para o workflow da `main` (D-14).
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
