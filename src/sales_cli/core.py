@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Final
+
+LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,3 +74,33 @@ def summarize(sales: Sequence[Sale]) -> Report:
         best_by_units=best_by_units,
         best_by_revenue=best_by_revenue,
     )
+
+
+def is_within(sale: Sale, start: date | None, end: date | None) -> bool:
+    day: date | None = sale.sale_date
+    if day is None:
+        return False
+    if start is not None and day < start:
+        return False
+    return end is None or day <= end
+
+
+def filter_by_date(
+    sales: Sequence[Sale], start: date | None, end: date | None
+) -> list[Sale]:
+    if start is None and end is None:
+        return list(sales)
+    undated: int = sum(1 for sale in sales if sale.sale_date is None)
+    if undated == len(sales):
+        LOGGER.warning("Date filter ignored: no sale has a recognized date")
+        return list(sales)
+    if undated:
+        LOGGER.warning(
+            "Excluded %d sale(s) without a recognized date from the filtered period",
+            undated,
+        )
+    matching: list[Sale] = [sale for sale in sales if is_within(sale, start, end)]
+    if not matching:
+        LOGGER.warning("No sales match the selected period")
+    LOGGER.info("Date filter kept %d of %d sale(s)", len(matching), len(sales))
+    return matching
