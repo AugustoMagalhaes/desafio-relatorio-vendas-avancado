@@ -202,7 +202,7 @@ O enunciado não define o critério, então o relatório mostra os dois: o produ
 | Código | Significado |
 | --- | --- |
 | `0` | Sucesso. |
-| `1` | Erro de execução: arquivo inexistente ou ilegível, colunas obrigatórias ausentes ou nenhuma venda válida. |
+| `1` | Erro de execução: arquivo inexistente ou ilegível, CSV malformado, colunas obrigatórias ausentes ou nenhuma venda válida. |
 | `2` | Erro de uso: argumentos inválidos. |
 
 ## Logs

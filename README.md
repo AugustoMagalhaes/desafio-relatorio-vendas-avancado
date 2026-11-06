@@ -202,7 +202,7 @@ The challenge statement does not define the criterion, so the report shows both:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
-| `1` | Runtime error: missing or unreadable file, missing required columns or no valid sales. |
+| `1` | Runtime error: missing or unreadable file, malformed CSV, missing required columns or no valid sales. |
 | `2` | Usage error: invalid arguments. |
 
 ## Logging

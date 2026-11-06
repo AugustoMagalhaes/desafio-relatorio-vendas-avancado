@@ -329,6 +329,10 @@ A regra existe porque `Decimal` aceita expoentes arbitrariamente grandes (por ex
 
 A validação de sinal e de limite ficam na mesma função (`check_amount`), usada tanto para a quantidade quanto para o preço.
 
+## D-30 CSV malformado
+
+O módulo `csv` levanta `csv.Error` quando o arquivo não pode ser interpretado, por exemplo quando uma célula excede o limite de 131072 caracteres. `parse_sales` converte esse erro em `ParseError` com o nome do arquivo e o motivo, de modo que ele segue o mesmo caminho dos demais erros fatais de arquivo (D-19 e D-25): mensagem curta, sem traceback, e código de saída 1.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
