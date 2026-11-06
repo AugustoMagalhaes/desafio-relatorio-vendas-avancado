@@ -36,8 +36,14 @@ def column_widths(rows: Sequence[Row]) -> tuple[int, int, int]:
 
 def format_row(row: Row, widths: tuple[int, int, int]) -> str:
     product, units, revenue = row
+    product_width, units_width, revenue_width = widths
+    cells: list[str] = [
+        f"{product:<{product_width}}",
+        f"{units:>{units_width}}",
+        f"{revenue:>{revenue_width}}",
+    ]
 
-    return f"{product:<{widths[0]}} | {units:>{widths[1]}} | {revenue:>{widths[2]}}"
+    return " | ".join(cells)
 
 
 def format_table(products: Sequence[ProductTotal]) -> list[str]:
