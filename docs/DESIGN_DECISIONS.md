@@ -173,6 +173,20 @@ O ruleset `protect-main` impede push direto, force push e exclusão da `main`. E
 
 As mensagens de commit seguem Conventional Commits, em inglês.
 
+## D-16 Modelo de venda
+
+Cada linha válida do CSV é representada por um `Sale` (`core.py`), com `sale_date`, `product`, `quantity` e `unit_price`.
+
+**Por que `dataclass`.** Gera `__init__`, `__repr__` e `__eq__` a partir dos campos tipados, sem código repetitivo, e faz parte da biblioteca padrão, o que respeita a decisão de zero dependências (D-04). Alternativas descartadas: dicionário (sem tipagem por campo e sujeito a erro de chave), classe comum (exigiria escrever os métodos à mão) e `NamedTuple` (também é imutável, mas se comporta como tupla: pode ser iterado, indexado e comparado com tuplas, o que não faz sentido para uma venda).
+
+**Por que `frozen=True`.** A venda é criada uma vez pelo parser e depois apenas lida pelo core e pela saída. Tornar o objeto imutável impede que alguma etapa altere o dado por engano e facilita o raciocínio sobre o fluxo. Como efeito colateral, o objeto passa a ser hashável.
+
+**Por que `slots=True`.** Evita o dicionário interno por instância, o que reduz o uso de memória quando o CSV tem muitas linhas, e impede a criação acidental de atributos novos (por exemplo, por erro de digitação em uma atribuição). O parâmetro está disponível desde o Python 3.10, versão mínima do projeto (D-07).
+
+**Campos.** `sale_date` aceita `None` para suportar CSVs sem coluna de data e linhas sem data (D-11). `quantity` é `int` e `unit_price` é `Decimal` (D-10). O total da venda é uma propriedade calculada, sem arredondamento; a quantização para duas casas decimais acontece apenas na saída.
+
+**Localização.** O modelo fica no módulo `core`, que é quem consome as vendas para calcular totais e o produto mais vendido. O `parser` apenas importa o tipo, o que evita dependência circular entre os módulos.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
