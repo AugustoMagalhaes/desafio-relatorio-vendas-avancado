@@ -233,6 +233,18 @@ Os produtos são ordenados por receita decrescente e, em empate, por nome. Os va
 
 Quando não há vendas, o `Report` tem lista vazia, total zero e os dois campos de melhor vendedor como `None`.
 
+## D-21 Filtro por período
+
+`filter_by_date` (`core.py`) recebe as vendas e os limites opcionais de início e fim. Os limites são inclusivos e podem ser usados isoladamente. Sem nenhum limite, as vendas são devolvidas sem alteração e sem registro em log. A ordem original é preservada.
+
+Como os CSVs podem não ter datas, ou ter datas em formato não reconhecido (D-11), o comportamento nesses casos é explícito:
+
+- Se nenhuma venda tem data reconhecida, o filtro é ignorado, todas as vendas são mantidas e é emitido um WARNING. Aplicar o filtro nesse caso produziria um relatório vazio por um motivo que o usuário provavelmente não pretendia.
+- Se apenas algumas vendas não têm data, elas são excluídas do período, pois não é possível saber se pertenceriam a ele, e um único WARNING informa quantas foram excluídas.
+- Se nenhuma venda cai no período, o resultado é vazio e um WARNING é emitido.
+
+Os avisos usam o nível WARNING, exibido em amarelo no terminal (D-09). A validação de que o início não é posterior ao fim é feita na camada de entrada (CLI), junto com a leitura dos argumentos.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
