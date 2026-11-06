@@ -2,7 +2,12 @@
 
 # sales-cli
 
-![CI](https://github.com/AugustoMagalhaes/desafio-relatorio-vendas-avancado/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/AugustoMagalhaes/desafio-relatorio-vendas-avancado/actions/workflows/ci.yml/badge.svg)](https://github.com/AugustoMagalhaes/desafio-relatorio-vendas-avancado/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/AugustoMagalhaes/desafio-relatorio-vendas-avancado/graph/badge.svg)](https://codecov.io/gh/AugustoMagalhaes/desafio-relatorio-vendas-avancado)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![basedpyright - checked](https://img.shields.io/badge/basedpyright-checked-42b983)](https://docs.basedpyright.com)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
 A command-line tool that reads a sales CSV file and produces a report with the total per product, the total value of all sales and the best-selling product, as a formatted text table or JSON, with an optional date range filter.
 
