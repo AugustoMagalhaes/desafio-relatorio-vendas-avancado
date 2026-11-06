@@ -9,6 +9,10 @@ import pytest
 
 from sales_cli.core import ProductTotal, Report, Sale, filter_by_date, summarize
 
+JAN_01: Final[date] = date(2025, 1, 1)
+JAN_10: Final[date] = date(2025, 1, 10)
+FEB_01: Final[date] = date(2025, 2, 1)
+
 
 def make_sale(
     product: str = "Mouse",
@@ -169,11 +173,6 @@ def test_best_by_units_full_tie_is_broken_by_name() -> None:
     report: Report = summarize(sales)
     assert report.best_by_units is not None
     assert report.best_by_units.product == "alfa"
-
-
-JAN_01: Final[date] = date(2025, 1, 1)
-JAN_10: Final[date] = date(2025, 1, 10)
-FEB_01: Final[date] = date(2025, 2, 1)
 
 
 def messages_at(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:

@@ -46,6 +46,36 @@ EXPECTED_TEXT: Final[list[str]] = [
     "Best seller (revenue): Monitor (2700.00)",
 ]
 
+MONEY_NUMBER_CASES: Final[list[tuple[str, float]]] = [
+    ("2.675", 2.68),
+    ("0.1", 0.1),
+    ("1234.5", 1234.5),
+    ("0", 0.0),
+    ("99.999", 100.0),
+]
+
+EXPECTED_PAYLOAD: Final[dict[str, object]] = {
+    "products": [
+        {"product": "Monitor", "quantity": 3, "revenue": 2700.0},
+        {"product": "Mouse", "quantity": 10, "revenue": 100.0},
+        {"product": "Cabo", "quantity": 1, "revenue": 5.5},
+    ],
+    "grand_total": 2805.5,
+    "best_seller_by_units": {"product": "Mouse", "quantity": 10, "revenue": 100.0},
+    "best_seller_by_revenue": {
+        "product": "Monitor",
+        "quantity": 3,
+        "revenue": 2700.0,
+    },
+}
+
+EMPTY_PAYLOAD: Final[dict[str, object]] = {
+    "products": [],
+    "grand_total": 0.0,
+    "best_seller_by_units": None,
+    "best_seller_by_revenue": None,
+}
+
 
 def make_sale(product: str, quantity: int, unit_price: str) -> Sale:
     return Sale(
@@ -110,37 +140,6 @@ def test_format_text_single_unit_wording() -> None:
     sales: list[Sale] = [make_sale("Mouse", 1, "10.00")]
     report: Report = make_report(sales)
     assert "Best seller (units): Mouse (1 sold)" in format_text(report)
-
-
-MONEY_NUMBER_CASES: Final[list[tuple[str, float]]] = [
-    ("2.675", 2.68),
-    ("0.1", 0.1),
-    ("1234.5", 1234.5),
-    ("0", 0.0),
-    ("99.999", 100.0),
-]
-
-EXPECTED_PAYLOAD: Final[dict[str, object]] = {
-    "products": [
-        {"product": "Monitor", "quantity": 3, "revenue": 2700.0},
-        {"product": "Mouse", "quantity": 10, "revenue": 100.0},
-        {"product": "Cabo", "quantity": 1, "revenue": 5.5},
-    ],
-    "grand_total": 2805.5,
-    "best_seller_by_units": {"product": "Mouse", "quantity": 10, "revenue": 100.0},
-    "best_seller_by_revenue": {
-        "product": "Monitor",
-        "quantity": 3,
-        "revenue": 2700.0,
-    },
-}
-
-EMPTY_PAYLOAD: Final[dict[str, object]] = {
-    "products": [],
-    "grand_total": 0.0,
-    "best_seller_by_units": None,
-    "best_seller_by_revenue": None,
-}
 
 
 @pytest.mark.parametrize(("value", "expected"), MONEY_NUMBER_CASES)
