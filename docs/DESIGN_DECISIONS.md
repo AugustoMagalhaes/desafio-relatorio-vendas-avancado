@@ -221,6 +221,30 @@ Uma linha inválida não interrompe a leitura: ela é ignorada e contada. Ao fin
 
 São erros fatais (`ParseError`): arquivo sem dados, cabeçalho sem as colunas obrigatórias e arquivo sem nenhuma venda válida. Nesses casos não há relatório útil a produzir, e a camada de entrada converte o erro em mensagem clara e código de saída 1. Um resumo com a quantidade de vendas lidas é registrado em nível INFO.
 
+## D-20 Agregação por produto
+
+`summarize` (`core.py`) recebe as vendas e devolve um `Report` com os totais por produto (`ProductTotal`), o total geral e os produtos mais vendidos por quantidade e por receita. As estruturas são dataclasses imutáveis, pelos mesmos motivos da D-16.
+
+Produtos são agrupados sem diferenciar maiúsculas de minúsculas (`casefold`), de modo que `Mouse` e `mouse` contam como o mesmo item; o nome exibido é o da primeira ocorrência. Acentos e pontuação não são normalizados nesse ponto, para manter a regra simples e previsível.
+
+O enunciado não define "produto mais vendido". Foi adotado o produto com maior quantidade de unidades, com desempate pela maior receita e, persistindo o empate, pelo nome em ordem alfabética, de forma que o resultado seja sempre determinístico. A receita também é calculada, e o produto de maior receita é informado separadamente, pois os dois critérios podem apontar produtos diferentes.
+
+Os produtos são ordenados por receita decrescente e, em empate, por nome. Os valores não são arredondados no `core`; o arredondamento para duas casas ocorre apenas na saída (D-10).
+
+Quando não há vendas, o `Report` tem lista vazia, total zero e os dois campos de melhor vendedor como `None`.
+
+## D-21 Filtro por período
+
+`filter_by_date` (`core.py`) recebe as vendas e os limites opcionais de início e fim. Os limites são inclusivos e podem ser usados isoladamente. Sem nenhum limite, as vendas são devolvidas sem alteração e sem registro em log. A ordem original é preservada.
+
+Como os CSVs podem não ter datas, ou ter datas em formato não reconhecido (D-11), o comportamento nesses casos é explícito:
+
+- Se nenhuma venda tem data reconhecida, o filtro é ignorado, todas as vendas são mantidas e é emitido um WARNING. Aplicar o filtro nesse caso produziria um relatório vazio por um motivo que o usuário provavelmente não pretendia.
+- Se apenas algumas vendas não têm data, elas são excluídas do período, pois não é possível saber se pertenceriam a ele, e um único WARNING informa quantas foram excluídas.
+- Se nenhuma venda cai no período, o resultado é vazio e um WARNING é emitido.
+
+Os avisos usam o nível WARNING, exibido em amarelo no terminal (D-09). A validação de que o início não é posterior ao fim é feita na camada de entrada (CLI), junto com a leitura dos argumentos.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
