@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal
+from typing import Final
 
 import pytest
 
-from sales_cli.core import ProductTotal, Report, Sale, summarize
+from sales_cli.core import ProductTotal, Report, Sale, filter_by_date, summarize
 
 
 def make_sale(
@@ -167,3 +169,107 @@ def test_best_by_units_full_tie_is_broken_by_name() -> None:
     report: Report = summarize(sales)
     assert report.best_by_units is not None
     assert report.best_by_units.product == "alfa"
+
+
+JAN_01: Final[date] = date(2025, 1, 1)
+JAN_10: Final[date] = date(2025, 1, 10)
+FEB_01: Final[date] = date(2025, 2, 1)
+
+
+def messages_at(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
+    return [record.getMessage() for record in caplog.records if record.levelno == level]
+
+
+def dated_sales() -> list[Sale]:
+    return [
+        make_sale(product="A", sale_date=JAN_01),
+        make_sale(product="B", sale_date=JAN_10),
+        make_sale(product="C", sale_date=FEB_01),
+    ]
+
+
+def test_filter_without_bounds_returns_all_sales_silently(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sales: list[Sale] = dated_sales() + [make_sale(product="D", sale_date=None)]
+    with caplog.at_level(logging.DEBUG, logger="sales_cli.core"):
+        result: list[Sale] = filter_by_date(sales, None, None)
+    assert result == sales
+    assert caplog.records == []
+
+
+def test_filter_with_start_only() -> None:
+    result: list[Sale] = filter_by_date(dated_sales(), JAN_10, None)
+    assert [sale.product for sale in result] == ["B", "C"]
+
+
+def test_filter_with_end_only() -> None:
+    result: list[Sale] = filter_by_date(dated_sales(), None, JAN_10)
+    assert [sale.product for sale in result] == ["A", "B"]
+
+
+def test_filter_with_both_bounds() -> None:
+    result: list[Sale] = filter_by_date(dated_sales(), JAN_01, JAN_10)
+    assert [sale.product for sale in result] == ["A", "B"]
+
+
+def test_filter_bounds_are_inclusive() -> None:
+    result: list[Sale] = filter_by_date(dated_sales(), JAN_10, JAN_10)
+    assert [sale.product for sale in result] == ["B"]
+
+
+def test_filter_preserves_original_order() -> None:
+    sales: list[Sale] = [
+        make_sale(product="C", sale_date=FEB_01),
+        make_sale(product="A", sale_date=JAN_01),
+        make_sale(product="B", sale_date=JAN_10),
+    ]
+    result: list[Sale] = filter_by_date(sales, JAN_01, FEB_01)
+    assert [sale.product for sale in result] == ["C", "A", "B"]
+
+
+def test_filter_excludes_undated_sales_with_single_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sales: list[Sale] = dated_sales() + [
+        make_sale(product="D", sale_date=None),
+        make_sale(product="E", sale_date=None),
+    ]
+    with caplog.at_level(logging.INFO, logger="sales_cli.core"):
+        result: list[Sale] = filter_by_date(sales, JAN_01, FEB_01)
+    warnings: list[str] = messages_at(caplog, logging.WARNING)
+    assert [sale.product for sale in result] == ["A", "B", "C"]
+    assert len(warnings) == 1
+    assert "Excluded 2" in warnings[0]
+
+
+def test_filter_is_ignored_when_no_sale_has_a_date(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sales: list[Sale] = [
+        make_sale(product="A", sale_date=None),
+        make_sale(product="B", sale_date=None),
+    ]
+    with caplog.at_level(logging.INFO, logger="sales_cli.core"):
+        result: list[Sale] = filter_by_date(sales, JAN_01, FEB_01)
+    warnings: list[str] = messages_at(caplog, logging.WARNING)
+    assert result == sales
+    assert len(warnings) == 1
+    assert "ignored" in warnings[0]
+
+
+def test_filter_warns_when_no_sale_matches(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.INFO, logger="sales_cli.core"):
+        result: list[Sale] = filter_by_date(dated_sales(), date(2030, 1, 1), None)
+    warnings: list[str] = messages_at(caplog, logging.WARNING)
+    assert result == []
+    assert warnings == ["No sales match the selected period"]
+
+
+def test_filter_logs_summary_at_info(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO, logger="sales_cli.core"):
+        _ = filter_by_date(dated_sales(), JAN_10, None)
+    infos: list[str] = messages_at(caplog, logging.INFO)
+    assert infos == ["Date filter kept 2 of 3 sale(s)"]
