@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Final, TypeAlias
@@ -63,3 +64,29 @@ def format_text(report: Report) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def money_number(value: Decimal) -> float:
+    return float(quantize_money(value))
+
+
+def product_to_dict(item: ProductTotal) -> dict[str, object]:
+    return {
+        "product": item.product,
+        "quantity": item.quantity,
+        "revenue": money_number(item.revenue),
+    }
+
+
+def optional_product(item: ProductTotal | None) -> dict[str, object] | None:
+    return None if item is None else product_to_dict(item)
+
+
+def format_json(report: Report) -> str:
+    payload: dict[str, object] = {
+        "products": [product_to_dict(item) for item in report.products],
+        "grand_total": money_number(report.grand_total),
+        "best_seller_by_units": optional_product(report.best_by_units),
+        "best_seller_by_revenue": optional_product(report.best_by_revenue),
+    }
+    return json.dumps(payload, indent=2)
