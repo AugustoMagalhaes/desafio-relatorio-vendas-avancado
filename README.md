@@ -164,8 +164,10 @@ Column names are matched ignoring case, accents and spacing, and column order do
 | --- | --- | --- |
 | Product | Yes | `produto`, `product`, `item`, `nome_produto` |
 | Quantity | Yes | `quantidade`, `quantity`, `qtd`, `qtde`, `qty` |
-| Unit price | Yes | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario` |
+| Unit price | Yes | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario`, `preco_unitario_r`, `preco_r`, `valor_unitario_r` |
 | Date | No | `data`, `date`, `data_venda`, `data_da_venda`, `sale_date` |
+
+Names are compared after normalization, so a header such as `Preço Unitário (R$)` is read as `preco_unitario_r`.
 
 Example:
 

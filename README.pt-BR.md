@@ -164,8 +164,10 @@ O nome da coluna é comparado sem diferenciar maiúsculas, acentos e espaços, e
 | --- | --- | --- |
 | Produto | Sim | `produto`, `product`, `item`, `nome_produto` |
 | Quantidade | Sim | `quantidade`, `quantity`, `qtd`, `qtde`, `qty` |
-| Preço unitário | Sim | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario` |
+| Preço unitário | Sim | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario`, `preco_unitario_r`, `preco_r`, `valor_unitario_r` |
 | Data | Não | `data`, `date`, `data_venda`, `data_da_venda`, `sale_date` |
+
+Os nomes são comparados depois de normalizados, então um cabeçalho como `Preço Unitário (R$)` é lido como `preco_unitario_r`.
 
 Exemplo:
 
