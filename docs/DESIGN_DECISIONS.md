@@ -293,6 +293,18 @@ O logger do CLI se chama `sales_cli.cli`, e não `__name__`, porque ao executar 
 
 Os testes cobrem o fluxo chamando `main` diretamente e, para validar o comando de ponta a ponta (separação entre saída padrão e de erro e códigos de saída reais), executando `python -m sales_cli` em um subprocesso.
 
+## D-26 Docker
+
+O uso com Docker é opcional; o projeto funciona sem ele, com ambiente virtual nativo (D-02).
+
+O `Dockerfile` tem três estágios. O `base` define a imagem `python:3.12-slim`, escolhida por estar no meio da faixa de versões suportadas (3.10 a 3.14, D-07), e as variáveis de ambiente comuns. O `test` instala o pacote com as dependências de desenvolvimento e executa o `pytest` com cobertura. O `runtime` instala somente o pacote, sem dependências de desenvolvimento, e é o último estágio, de modo que `docker build .` produz a imagem final e o estágio de teste só é construído quando solicitado com `--target test`.
+
+A imagem final executa como usuário sem privilégios (`app`) e define `vendas-cli` como `ENTRYPOINT`, de modo que ela se comporta como o próprio comando. O diretório de trabalho é `/data`, destinado a receber o CSV por montagem de volume, por exemplo `docker run --rm -v "$PWD:/data:ro" sales-cli vendas.csv`. Sem argumentos, a imagem exibe a ajuda.
+
+O estágio de teste executa apenas o `pytest`. As verificações de estilo e de tipos ficam no CI (D-14), porque a configuração do basedpyright referencia o ambiente virtual local (`.venv`), que não existe no contêiner. O estágio executa os testes ao rodar o contêiner (`CMD`), e não durante o build.
+
+Não há camada separada para o cache de dependências, pois o projeto não tem dependências de execução (D-04). O `.dockerignore` mantém fora do contexto de build o histórico do Git, ambientes virtuais, caches, documentação e exemplos, o que reduz o contexto enviado ao Docker e evita copiar arquivos locais para a imagem.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
