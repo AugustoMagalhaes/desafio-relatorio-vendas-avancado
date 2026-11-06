@@ -245,6 +245,16 @@ Como os CSVs podem não ter datas, ou ter datas em formato não reconhecido (D-1
 
 Os avisos usam o nível WARNING, exibido em amarelo no terminal (D-09). A validação de que o início não é posterior ao fim é feita na camada de entrada (CLI), junto com a leitura dos argumentos.
 
+## D-22 Saída em texto
+
+`format_text` (`output.py`) gera a tabela de produtos, o total geral e os produtos mais vendidos por quantidade e por receita. A função apenas devolve uma `str`; quem imprime é a camada de entrada, o que mantém o módulo de saída testável sem capturar stdout.
+
+O arredondamento para duas casas decimais acontece somente no módulo de saída (D-10), com `quantize` e `ROUND_HALF_UP`, o arredondamento comercial usual. O modo é explícito porque a formatação de `Decimal` do Python usa por padrão o arredondamento "half even", que arredonda 0,125 para 0,12. Os valores no `core` permanecem exatos.
+
+A tabela é ASCII, com a largura de cada coluna calculada pelo conteúdo, produto alinhado à esquerda e números à direita. Os valores são impressos sem símbolo de moeda nem separador de milhar, para que a saída não dependa de localidade e possa ser lida por outras ferramentas. Os rótulos estão em inglês, seguindo a D-01.
+
+Sem vendas, a saída é a mensagem `No sales to report.`
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
