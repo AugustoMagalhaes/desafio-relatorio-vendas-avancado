@@ -41,6 +41,7 @@ class ParseError(Exception):
 
 def read_text(path: Path) -> str:
     raw: bytes = path.read_bytes()
+
     for encoding in ENCODINGS:
         try:
             text: str = raw.decode(encoding)
@@ -49,7 +50,9 @@ def read_text(path: Path) -> str:
         else:
             LOGGER.debug("Decoded %s as %s", path, encoding)
             return text
+
     LOGGER.debug("Decoded %s as %s (fallback)", path, FALLBACK_ENCODING)
+
     return raw.decode(FALLBACK_ENCODING)
 
 
@@ -57,11 +60,13 @@ def detect_delimiter(text: str) -> str:
     header: str = next((line for line in text.splitlines() if line.strip()), "")
     best: str = DEFAULT_DELIMITER
     best_count: int = 0
+
     for delimiter in DELIMITERS:
         count: int = header.count(delimiter)
         if count > best_count:
             best = delimiter
             best_count = count
+
     return best
 
 
@@ -70,14 +75,18 @@ def map_columns(header: Sequence[str]) -> dict[str, int]:
         normalize_text(name): index for index, name in enumerate(header)
     }
     columns: dict[str, int] = {}
+
     for field, aliases in HEADER_ALIASES.items():
         for alias in aliases:
             if alias in indexes:
                 columns[field] = indexes[alias]
                 break
+
     missing: list[str] = [name for name in REQUIRED_FIELDS if name not in columns]
+
     if missing:
         raise ParseError(f"missing required columns: {', '.join(missing)}")
+
     return columns
 
 
@@ -85,6 +94,7 @@ def get_cell(row: Sequence[str], columns: Mapping[str, int], field: str) -> str:
     index: int | None = columns.get(field)
     if index is None or index >= len(row):
         return ""
+
     return row[index].strip()
 
 
@@ -99,7 +109,9 @@ def parse_quantity(text: str) -> int:
     value: Decimal = parse_decimal(text)
     if value != value.to_integral_value():
         raise ValueError(f"quantity is not a whole number: {text!r}")
+
     check_amount(value, "quantity")
+
     return int(value)
 
 
@@ -114,8 +126,10 @@ def row_to_sale(row: Sequence[str], columns: Mapping[str, int]) -> Sale:
 
     date_text: str = get_cell(row, columns, "date")
     sale_date: date | None = parse_date(date_text) if date_text else None
+
     if date_text and sale_date is None:
         LOGGER.debug("Unrecognized date %r", date_text)
+
     return Sale(
         sale_date=sale_date,
         product=product,
@@ -127,33 +141,43 @@ def row_to_sale(row: Sequence[str], columns: Mapping[str, int]) -> Sale:
 def parse_sales(path: Path) -> list[Sale]:
     text: str = read_text(path)
     delimiter: str = detect_delimiter(text)
-    rows: list[list[str]] = list(
-        csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
-    )
+    try:
+        rows: list[list[str]] = list(
+            csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
+        )
+    except csv.Error as error:
+        raise ParseError(f"invalid CSV in {path.name}: {error}") from error
+
     numbered_rows: list[tuple[int, list[str]]] = [
         (number, row)
         for number, row in enumerate(rows, start=1)
         if any(cell.strip() for cell in row)
     ]
+
     if not numbered_rows:
         raise ParseError(f"no data found in {path.name}")
+
     columns: dict[str, int] = map_columns(numbered_rows[0][1])
     LOGGER.debug("Delimiter %r, columns %s", delimiter, columns)
     sales: list[Sale] = []
     skipped: int = 0
+
     for number, row in numbered_rows[1:]:
         try:
             sales.append(row_to_sale(row, columns))
         except ValueError as error:
             skipped += 1
             LOGGER.debug("Skipped row %d: %s", number, error)
+
     if skipped:
         LOGGER.warning(
             "Skipped %d invalid row(s) in %s (use -v for details)",
             skipped,
             path.name,
         )
+
     if not sales:
         raise ParseError(f"no valid sales found in {path.name}")
     LOGGER.info("Read %d sale(s) from %s", len(sales), path.name)
+
     return sales
