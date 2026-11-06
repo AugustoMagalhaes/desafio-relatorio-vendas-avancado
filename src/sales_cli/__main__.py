@@ -14,8 +14,10 @@ from sales_cli.parser import ParseError, parse_sales
 from sales_cli.utils import LOGGER_NAME, parse_date, setup_logging
 
 PROG: Final[str] = "vendas-cli"
-FORMATS: Final[tuple[str, ...]] = ("text", "json")
-DEFAULT_FORMAT: Final[str] = "text"
+FORMAT_TEXT: Final[str] = "text"
+FORMAT_JSON: Final[str] = "json"
+FORMATS: Final[tuple[str, ...]] = (FORMAT_TEXT, FORMAT_JSON)
+DEFAULT_FORMAT: Final[str] = FORMAT_TEXT
 LOGGER: Final[logging.Logger] = logging.getLogger(f"{LOGGER_NAME}.cli")
 EXIT_OK: Final[int] = 0
 EXIT_ERROR: Final[int] = 1
@@ -34,8 +36,10 @@ class Arguments(argparse.Namespace):
 
 def date_argument(value: str) -> date:
     parsed: date | None = parse_date(value)
+
     if parsed is None:
         raise argparse.ArgumentTypeError(f"invalid date: {value!r}")
+
     return parsed
 
 
@@ -74,20 +78,24 @@ def build_parser() -> argparse.ArgumentParser:
     _ = parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
+
     return parser
 
 
 def parse_arguments(argv: Sequence[str] | None = None) -> Arguments:
     parser: argparse.ArgumentParser = build_parser()
     arguments: Arguments = parser.parse_args(argv, namespace=Arguments())
+
     if (
         arguments.start is not None
         and arguments.end is not None
         and arguments.start > arguments.end
     ):
         parser.error("--start must not be after --end")
+
     if arguments.verbose and arguments.quiet:
         parser.error("--verbose and --quiet cannot be used together")
+
     return arguments
 
 
@@ -96,12 +104,14 @@ def resolve_log_level(arguments: Arguments) -> int:
         return logging.DEBUG
     if arguments.quiet:
         return logging.WARNING
+
     return logging.INFO
 
 
 def render(report: Report, output_format: str) -> str:
-    if output_format == "json":
+    if output_format == FORMAT_JSON:
         return format_json(report)
+
     return format_text(report)
 
 
@@ -119,9 +129,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ParseError as error:
         LOGGER.error("%s", error)
         return EXIT_ERROR
+
     filtered: list[Sale] = filter_by_date(sales, arguments.start, arguments.end)
     report: Report = summarize(filtered)
     print(render(report, arguments.output_format))
+
     return EXIT_OK
 
 
