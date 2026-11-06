@@ -29,6 +29,9 @@ HEADER_ALIASES: Final[dict[str, tuple[str, ...]]] = {
         "preco",
         "price",
         "valor_unitario",
+        "preco_unitario_r",
+        "preco_r",
+        "valor_unitario_r",
     ),
 }
 REQUIRED_FIELDS: Final[tuple[str, ...]] = ("product", "quantity", "unit_price")
