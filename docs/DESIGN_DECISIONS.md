@@ -267,6 +267,32 @@ Caracteres não ASCII são escapados (`\u00e2`), que é o comportamento padrão 
 
 O relatório vai para a saída padrão e os logs vão para a saída de erro (D-09), de modo que a saída JSON possa ser redirecionada ou encadeada com outras ferramentas sem ser contaminada por mensagens.
 
+## D-24 Argumentos da linha de comando
+
+O `__main__.py` é o ponto de entrada do comando `vendas-cli` e concentra o `argparse`, a única camada que lida com argumentos e códigos de saída. Os módulos `parser`, `core` e `output` não conhecem a CLI.
+
+Os argumentos são: o caminho do CSV (obrigatório), `-f/--format` (`text` ou `json`, padrão `text`), `--start` e `--end` (opcionais, inclusivos), `-v/--verbose`, `-q/--quiet` e `--version`.
+
+As datas de `--start` e `--end` passam pela mesma função `parse_date` usada na leitura do CSV (D-11), de modo que aceitam os mesmos formatos (por exemplo, `2025-01-31` e `31/01/2025`). Uma data inválida é rejeitada pelo próprio `argparse`.
+
+Os atributos de um `argparse.Namespace` comum são do tipo `Any`, o que anula a verificação estática. Por isso a classe `Arguments` herda de `Namespace` e declara cada atributo com tipo e valor inicial no `__init__`; o `argparse` sobrescreve esses valores com os da linha de comando. O resto do código usa os argumentos com tipos conhecidos.
+
+Erros de uso terminam com o código de saída 2, padrão do `argparse`: formato desconhecido, data inválida, `--start` posterior a `--end` e uso simultâneo de `--verbose` e `--quiet`. A segunda e a terceira regras são validadas após a leitura, com `parser.error`, para produzirem a mesma mensagem de uso e o mesmo código de saída dos demais erros.
+
+## D-25 Fluxo principal, saída padrão e códigos de saída
+
+`main` (`__main__.py`) orquestra as camadas: lê os argumentos, configura o logging, lê o CSV, aplica o filtro de datas, calcula o relatório e o imprime em texto ou JSON. A função recebe a lista de argumentos como parâmetro e devolve o código de saída, o que a torna testável sem processos externos; o bloco `if __name__ == "__main__"` apenas encaminha o retorno para `SystemExit`. Esse mesmo `main` é o ponto de entrada do comando instalado (D-02).
+
+O relatório é escrito na saída padrão e todos os logs na saída de erro (D-09), de modo que a saída possa ser redirecionada, por exemplo `vendas-cli vendas.csv -f json > saida.json`, sem mensagens misturadas.
+
+Níveis de log: INFO por padrão, DEBUG com `-v` e WARNING com `-q`. O modo silencioso ainda exibe avisos e erros, que indicam problemas reais nos dados ou na execução.
+
+Códigos de saída: 0 em caso de sucesso, 1 para erros de execução e 2 para erros de uso, padrão do `argparse` (D-24). São tratados como erro de execução: arquivo inexistente, arquivo ilegível (por exemplo, um diretório ou falta de permissão), cabeçalho sem colunas obrigatórias e arquivo sem nenhuma venda válida. Em todos os casos o programa registra uma mensagem de erro curta, sem traceback. Um período sem vendas não é erro: o relatório vazio é impresso, com aviso, e o código de saída é 0.
+
+O logger do CLI se chama `sales_cli.cli`, e não `__name__`, porque ao executar `python -m sales_cli` o nome do módulo é `__main__`, que não pertence ao pacote `sales_cli` e portanto não herdaria o handler configurado em `setup_logging`.
+
+Os testes cobrem o fluxo chamando `main` diretamente e, para validar o comando de ponta a ponta (separação entre saída padrão e de erro e códigos de saída reais), executando `python -m sales_cli` em um subprocesso.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
