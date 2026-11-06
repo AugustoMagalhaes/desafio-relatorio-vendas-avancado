@@ -164,8 +164,10 @@ O nome da coluna é comparado sem diferenciar maiúsculas, acentos e espaços, e
 | --- | --- | --- |
 | Produto | Sim | `produto`, `product`, `item`, `nome_produto` |
 | Quantidade | Sim | `quantidade`, `quantity`, `qtd`, `qtde`, `qty` |
-| Preço unitário | Sim | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario` |
+| Preço unitário | Sim | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario`, `preco_unitario_r`, `preco_r`, `valor_unitario_r` |
 | Data | Não | `data`, `date`, `data_venda`, `data_da_venda`, `sale_date` |
+
+Os nomes são comparados depois de normalizados, então um cabeçalho como `Preço Unitário (R$)` é lido como `preco_unitario_r`.
 
 Exemplo:
 
@@ -177,8 +179,8 @@ data;produto;quantidade;preço unitário
 
 ### Valores
 
-- **Quantidade:** número inteiro não negativo (`3` e `3.0` são aceitos).
-- **Preço:** número não negativo, com ou sem o prefixo `R$`. Aceita `1234.50`, `10,5` e `1.234,50`.
+- **Quantidade:** número inteiro não negativo, até 1.000.000.000 (`3` e `3.0` são aceitos).
+- **Preço:** número não negativo, até 1.000.000.000, com ou sem o prefixo `R$`. Aceita `1234.50`, `10,5` e `1.234,50`.
 - **Datas:** `AAAA-MM-DD`, `AAAA/MM/DD`, `AAAA.MM.DD`, `DD/MM/AAAA`, `DD-MM-AAAA`, `DD.MM.AAAA`, `DD/MM/AA`, `MM/DD/AAAA` e `MM-DD-AAAA`. Uma parte de horário é ignorada. Quando o formato é ambíguo (por exemplo `01/02/2025`), o dia vem primeiro.
 - **Produtos** com a mesma grafia, sem diferenciar maiúsculas de minúsculas, são somados.
 
@@ -202,7 +204,7 @@ O enunciado não define o critério, então o relatório mostra os dois: o produ
 | Código | Significado |
 | --- | --- |
 | `0` | Sucesso. |
-| `1` | Erro de execução: arquivo inexistente ou ilegível, colunas obrigatórias ausentes ou nenhuma venda válida. |
+| `1` | Erro de execução: arquivo inexistente ou ilegível, CSV malformado, colunas obrigatórias ausentes ou nenhuma venda válida. |
 | `2` | Erro de uso: argumentos inválidos. |
 
 ## Logs

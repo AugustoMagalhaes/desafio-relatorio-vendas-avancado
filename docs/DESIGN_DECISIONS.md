@@ -321,6 +321,24 @@ O CI envia o relatório de cobertura ao Codecov, que alimenta o badge de cobertu
 
 O envio é configurado com `fail_ci_if_error: false`: uma indisponibilidade do serviço externo não reprova o CI. O critério mínimo de cobertura continua sendo aplicado pelo próprio `pytest` (`fail_under` de 80% no `pyproject.toml`, D-05), de modo que o Codecov serve para visibilidade e não como barreira de merge.
 
+## D-29 Limite de valores
+
+Quantidade e preço unitário têm um limite máximo de 1.000.000.000 (`MAX_AMOUNT`, em `parser.py`). Uma linha com valor acima do limite é tratada como inválida, no mesmo mecanismo da D-19: é ignorada, entra no aviso único com a contagem e o motivo aparece com `-v`.
+
+A regra existe porque `Decimal` aceita expoentes arbitrariamente grandes (por exemplo `1e30`), mas o arredondamento para duas casas (D-22) usa a precisão padrão de 28 dígitos e levanta `decimal.InvalidOperation` quando o resultado não cabe. Sem o limite, uma única linha com um valor desse tipo derrubava o programa com traceback, apenas na hora de imprimir. Com o limite de 10^9 por campo, o total de uma linha é no máximo 10^18, o que mantém a soma de dezenas de milhões de linhas dentro da precisão.
+
+A validação de sinal e de limite ficam na mesma função (`check_amount`), usada tanto para a quantidade quanto para o preço.
+
+## D-30 CSV malformado
+
+O módulo `csv` levanta `csv.Error` quando o arquivo não pode ser interpretado, por exemplo quando uma célula excede o limite de 131072 caracteres. `parse_sales` converte esse erro em `ParseError` com o nome do arquivo e o motivo, de modo que ele segue o mesmo caminho dos demais erros fatais de arquivo (D-19 e D-25): mensagem curta, sem traceback, e código de saída 1.
+
+## D-31 Cabeçalhos com sufixo de moeda
+
+A normalização de cabeçalhos (D-12) transforma um nome como `Preço Unitário (R$)` em `preco_unitario_r`. Em vez de uma regra genérica para remover sufixos, que exigiria uma expressão de busca mais complexa, as variações mais comuns foram acrescentadas explicitamente à lista de aliases de preço (`preco_unitario_r`, `preco_r` e `valor_unitario_r`). O casamento continua sendo uma simples comparação de nomes, fácil de ler e de testar.
+
+Limitação conhecida: sufixos de outras moedas ou de outras unidades (por exemplo `(USD)`) não são reconhecidos. Nesse caso o arquivo é rejeitado com a mensagem de colunas obrigatórias ausentes (D-18), que lista o que faltou.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
@@ -335,3 +353,4 @@ O envio é configurado com `fail_ci_if_error: false`: uma indisponibilidade do s
 | 7 | build/docker-support | `Dockerfile` multi-estágio (`base`, `test`, `runtime`), usuário sem root e `.dockerignore` |
 | 7.1 | fix/json-non-ascii | JSON com caracteres não ASCII legíveis, em vez de escapados |
 | 8 | docs/readme | README em inglês e português, badges de status, relatório de cobertura no Codecov |
+| 9 | fix/input-robustness | Limite de valores, CSV malformado tratado como erro de arquivo e cabeçalhos com sufixo de moeda |

@@ -70,6 +70,7 @@ def setup_logging(
     logger.addHandler(handler)
     logger.setLevel(level)
     logger.propagate = False
+
     return logger
 
 
@@ -84,6 +85,7 @@ def normalize_text(value: str) -> str:
 
 def parse_decimal(text: str) -> Decimal:
     cleaned: str = text.strip().removeprefix("R$").strip()
+
     if "," in cleaned and "." in cleaned:
         if cleaned.rfind(",") > cleaned.rfind("."):
             cleaned = cleaned.replace(".", "").replace(",", ".")
@@ -91,20 +93,25 @@ def parse_decimal(text: str) -> Decimal:
             cleaned = cleaned.replace(",", "")
     else:
         cleaned = cleaned.replace(",", ".")
+
     try:
         value: Decimal = Decimal(cleaned)
     except InvalidOperation:
         raise ValueError(f"not a number: {text!r}") from None
+
     if not value.is_finite():
         raise ValueError(f"not a number: {text!r}")
+
     return value
 
 
 def parse_date(text: str) -> date | None:
     value: str = text.strip().replace("T", " ").split(" ")[0]
+
     for date_format in DATE_FORMATS:
         try:
             return datetime.strptime(value, date_format).date()
         except ValueError:
             continue
+
     return None

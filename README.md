@@ -164,8 +164,10 @@ Column names are matched ignoring case, accents and spacing, and column order do
 | --- | --- | --- |
 | Product | Yes | `produto`, `product`, `item`, `nome_produto` |
 | Quantity | Yes | `quantidade`, `quantity`, `qtd`, `qtde`, `qty` |
-| Unit price | Yes | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario` |
+| Unit price | Yes | `preco_unitario`, `unit_price`, `preco`, `price`, `valor_unitario`, `preco_unitario_r`, `preco_r`, `valor_unitario_r` |
 | Date | No | `data`, `date`, `data_venda`, `data_da_venda`, `sale_date` |
+
+Names are compared after normalization, so a header such as `Preço Unitário (R$)` is read as `preco_unitario_r`.
 
 Example:
 
@@ -177,8 +179,8 @@ data;produto;quantidade;preço unitário
 
 ### Values
 
-- **Quantity:** a non-negative whole number (`3` and `3.0` are accepted).
-- **Price:** a non-negative number, with or without the `R$` prefix. Accepts `1234.50`, `10,5` and `1.234,50`.
+- **Quantity:** a non-negative whole number up to 1,000,000,000 (`3` and `3.0` are accepted).
+- **Price:** a non-negative number up to 1,000,000,000, with or without the `R$` prefix. Accepts `1234.50`, `10,5` and `1.234,50`.
 - **Dates:** `YYYY-MM-DD`, `YYYY/MM/DD`, `YYYY.MM.DD`, `DD/MM/YYYY`, `DD-MM-YYYY`, `DD.MM.YYYY`, `DD/MM/YY`, `MM/DD/YYYY` and `MM-DD-YYYY`. A time part is ignored. When the format is ambiguous (for example `01/02/2025`), the day comes first.
 - **Products** spelled the same way, ignoring case, are added together.
 
@@ -202,7 +204,7 @@ The challenge statement does not define the criterion, so the report shows both:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
-| `1` | Runtime error: missing or unreadable file, missing required columns or no valid sales. |
+| `1` | Runtime error: missing or unreadable file, malformed CSV, missing required columns or no valid sales. |
 | `2` | Usage error: invalid arguments. |
 
 ## Logging
