@@ -354,3 +354,4 @@ Limitação conhecida: sufixos de outras moedas ou de outras unidades (por exemp
 | 7.1 | fix/json-non-ascii | JSON com caracteres não ASCII legíveis, em vez de escapados |
 | 8 | docs/readme | README em inglês e português, badges de status, relatório de cobertura no Codecov |
 | 9 | fix/input-robustness | Limite de valores, CSV malformado tratado como erro de arquivo e cabeçalhos com sufixo de moeda |
+| 10 | refactor/simplify-source | Simplificação de `summarize`, de `format_row` e constantes nomeadas para os formatos de saída |

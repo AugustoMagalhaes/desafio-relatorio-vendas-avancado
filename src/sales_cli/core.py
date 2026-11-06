@@ -50,26 +50,21 @@ def summarize(sales: Sequence[Sale]) -> Report:
 
     for sale in sales:
         key: str = sale.product.casefold()
-        current: ProductTotal | None = totals.get(key)
-        if current is None:
-            totals[key] = ProductTotal(
-                product=sale.product,
-                quantity=sale.quantity,
-                revenue=sale.total,
-            )
-        else:
-            totals[key] = ProductTotal(
-                product=current.product,
-                quantity=current.quantity + sale.quantity,
-                revenue=current.revenue + sale.total,
-            )
+        current: ProductTotal = totals.get(
+            key, ProductTotal(product=sale.product, quantity=0, revenue=Decimal(0))
+        )
+        totals[key] = ProductTotal(
+            product=current.product,
+            quantity=current.quantity + sale.quantity,
+            revenue=current.revenue + sale.total,
+        )
 
     products: tuple[ProductTotal, ...] = tuple(
         sorted(totals.values(), key=revenue_rank)
     )
     grand_total: Decimal = sum((item.revenue for item in products), Decimal(0))
     best_by_units: ProductTotal | None = min(products, key=units_rank, default=None)
-    best_by_revenue: ProductTotal | None = products[0] if products else None
+    best_by_revenue: ProductTotal | None = min(products, key=revenue_rank, default=None)
 
     return Report(
         products=products,
