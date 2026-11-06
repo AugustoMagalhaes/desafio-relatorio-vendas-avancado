@@ -187,6 +187,16 @@ Cada linha válida do CSV é representada por um `Sale` (`core.py`), com `sale_d
 
 **Localização.** O modelo fica no módulo `core`, que é quem consome as vendas para calcular totais e o produto mais vendido. O `parser` apenas importa o tipo, o que evita dependência circular entre os módulos.
 
+## D-17 Leitura do arquivo CSV
+
+O arquivo é lido como bytes e decodificado pela primeira codificação que funcionar, na ordem `utf-8-sig`, `cp1252` e `latin-1`. O `utf-8-sig` aceita UTF-8 com ou sem BOM. O `cp1252` cobre arquivos exportados por programas no Windows. O `latin-1` fica por último porque mapeia todos os valores de byte e, portanto, nunca falha, o que garante que a leitura sempre produza um texto. Os dois arquivos de exemplo do repositório usam codificações diferentes (Latin-1 e UTF-8) e são cobertos por essa ordem.
+
+O delimitador é detectado na primeira linha não vazia, escolhendo entre `;`, `,` e tabulação aquele que aparece mais vezes. Sem nenhum candidato, o padrão é a vírgula. A abordagem é simples e previsível, e suficiente porque o cabeçalho não contém números com vírgula decimal.
+
+O arquivo inteiro é lido em memória. Para o volume esperado de um relatório de vendas isso é adequado e mantém o código simples. A codificação usada é registrada em nível DEBUG.
+
+Arquivo inexistente levanta `FileNotFoundError`, tratado na camada de entrada (CLI).
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
