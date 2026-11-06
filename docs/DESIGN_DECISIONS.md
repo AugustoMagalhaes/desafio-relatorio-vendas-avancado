@@ -267,6 +267,18 @@ Caracteres não ASCII são escapados (`\u00e2`), que é o comportamento padrão 
 
 O relatório vai para a saída padrão e os logs vão para a saída de erro (D-09), de modo que a saída JSON possa ser redirecionada ou encadeada com outras ferramentas sem ser contaminada por mensagens.
 
+## D-24 Argumentos da linha de comando
+
+O `__main__.py` é o ponto de entrada do comando `vendas-cli` e concentra o `argparse`, a única camada que lida com argumentos e códigos de saída. Os módulos `parser`, `core` e `output` não conhecem a CLI.
+
+Os argumentos são: o caminho do CSV (obrigatório), `-f/--format` (`text` ou `json`, padrão `text`), `--start` e `--end` (opcionais, inclusivos), `-v/--verbose`, `-q/--quiet` e `--version`.
+
+As datas de `--start` e `--end` passam pela mesma função `parse_date` usada na leitura do CSV (D-11), de modo que aceitam os mesmos formatos (por exemplo, `2025-01-31` e `31/01/2025`). Uma data inválida é rejeitada pelo próprio `argparse`.
+
+Os atributos de um `argparse.Namespace` comum são do tipo `Any`, o que anula a verificação estática. Por isso a classe `Arguments` herda de `Namespace` e declara cada atributo com tipo e valor inicial no `__init__`; o `argparse` sobrescreve esses valores com os da linha de comando. O resto do código usa os argumentos com tipos conhecidos.
+
+Erros de uso terminam com o código de saída 2, padrão do `argparse`: formato desconhecido, data inválida, `--start` posterior a `--end` e uso simultâneo de `--verbose` e `--quiet`. A segunda e a terceira regras são validadas após a leitura, com `parser.error`, para produzirem a mesma mensagem de uso e o mesmo código de saída dos demais erros.
+
 ## 3. Registro por etapa
 
 | Etapa | Branch | Resumo |
